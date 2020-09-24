@@ -26,8 +26,12 @@
 
 		textarea {
 			background-color: black;
-			height: 32em;
+			height: 16em;
 			width: 100%;
+		}
+
+		#top {
+			display: inline-block;
 		}
 		</style>
 		<script>
@@ -79,8 +83,16 @@
 		</script>
 	</head>
 	<body onload="setup();">
-		<input type="file" accept="image/*" onchange="imageToExpression(this);">
-		<canvas id="canvas" width="0" height="0"></canvas>
-		<textarea id="textarea"></textarea>
+		<h1>Image to expression converter</h1>
+		<div id="top">
+			<input type="file" accept="image/*" onchange="imageToExpression(this);">
+			<canvas id="canvas" width="0" height="0"></canvas>
+		</div>
+		<h2>Brush Color</h2>
+		<textarea id="textarea" readonly></textarea>
+		<h2>Brush Position</h2>
+		<textarea readonly>const x = timeToFrames(time)%thisComp.width;
+const y = Math.floor(timeToFrames(time)/thisComp.width);
+[x+1,y+1]</textarea>
 	</body>
 </html>
