@@ -13,7 +13,7 @@
 		<style>
 		* {
 			color: white;
-			font-family: monospace;
+			font-family: "Trebuchet MS", Helvetica, sans-serif;
 		}
 
 		html, body {
@@ -26,8 +26,18 @@
 
 		textarea {
 			background-color: black;
+			box-sizing: border-box;
+			font-family: "Lucida Console", Monaco, monospace;
 			height: 16em;
+			resize: vertical;
 			width: 100%;
+		}
+
+		.half {
+			box-sizing: border-box;
+			display: inline-block;
+			float: left;
+			width: 50%;
 		}
 
 		#top {
@@ -88,11 +98,17 @@
 			<input type="file" accept="image/*" onchange="imageToExpression(this);">
 			<canvas id="canvas" width="0" height="0"></canvas>
 		</div>
-		<h2>Brush Color</h2>
-		<textarea id="textarea" readonly></textarea>
-		<h2>Brush Position</h2>
-		<textarea readonly>const x = timeToFrames(time)%thisComp.width;
+		<div>
+			<div class="half">
+				<h2>Brush Position</h2>
+				<textarea readonly>const x = timeToFrames(time)%thisComp.width;
 const y = Math.floor(timeToFrames(time)/thisComp.width);
 [x+1,y+1]</textarea>
+			</div>
+			<div class="half">
+				<h2>Brush Color</h2>
+				<textarea id="textarea" readonly></textarea>
+			</div>
+		</div>
 	</body>
 </html>
