@@ -8,10 +8,16 @@ Small expressions, scripts and projects for Adobe After Effects.
 
 [Drawing in After Effects](./projects/DRAW.aep)
 
-[![Drawing tool](https://img.youtube.com/vi/XxiwhegTduI/mqdefault.jpg)](https://youtu.be/XxiwhegTduI)
+[![Drawing demo](https://img.youtube.com/vi/XxiwhegTduI/mqdefault.jpg)](https://youtu.be/XxiwhegTduI)
+
+## Expressions
+
+[Easings](./expressions/easing2.js)
+
+[![Easings demo](https://img.youtube.com/vi/6qnkLmMJ2AE/mqdefault.jpg)](https://youtu.be/6qnkLmMJ2AE)
 
 ## Tools
 [Image to expression converter](https://mysterypancake.github.io/After-Effects-Fun/tools/imagetoexpression)
 
 [![Expression converter](https://img.youtube.com/vi/sEwBKQni7kU/mqdefault.jpg)](https://youtu.be/sEwBKQni7kU)
-[![Drawing demo](https://img.youtube.com/vi/OfXQXMyMp-U/mqdefault.jpg)](https://youtu.be/OfXQXMyMp-U)
+[![Expression demo](https://img.youtube.com/vi/OfXQXMyMp-U/mqdefault.jpg)](https://youtu.be/OfXQXMyMp-U)
