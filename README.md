@@ -2,11 +2,11 @@
 Expressions, scripts and projects for Adobe After Effects.
 
 ## Projects
-[Playable Pong](./projects/PONG)
+[Pong game](./projects/PONG)
 
 [![Pong demo](https://img.youtube.com/vi/3HMT1M9F5yA/mqdefault.jpg)](https://youtu.be/3HMT1M9F5yA)
 
-[Path Drawing](./projects/DRAW)
+[Drawing game](./projects/DRAW)
 
 [![Drawing demo](https://img.youtube.com/vi/XxiwhegTduI/mqdefault.jpg)](https://youtu.be/XxiwhegTduI)
 
