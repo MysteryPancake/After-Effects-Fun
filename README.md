@@ -2,17 +2,17 @@
 Expressions, scripts and projects for Adobe After Effects.
 
 ## Projects
-[Playable Pong in After Effects](./projects/PONG)
+[Playable Pong](./projects/PONG)
 
 [![Pong demo](https://img.youtube.com/vi/3HMT1M9F5yA/mqdefault.jpg)](https://youtu.be/3HMT1M9F5yA)
 
-[Drawing in After Effects](./projects/DRAW)
+[Path Drawing](./projects/DRAW)
 
 [![Drawing demo](https://img.youtube.com/vi/XxiwhegTduI/mqdefault.jpg)](https://youtu.be/XxiwhegTduI)
 
 ## Expressions
 
-[Easings](./expressions/easing2.js)
+[Custom easings](./expressions/easing2.js)
 
 [![Easings reference](https://img.youtube.com/vi/6qnkLmMJ2AE/mqdefault.jpg)](https://youtu.be/6qnkLmMJ2AE)
 [![Easings demo](https://img.youtube.com/vi/jy5WZwaGMhY/mqdefault.jpg)](https://youtu.be/jy5WZwaGMhY)
