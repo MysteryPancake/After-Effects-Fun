@@ -1,1 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Image to Expression</title>
+		<meta name="description" content="Bootleg image converter.">
+		<meta property="og:title" content="Image to Expression">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://mysterypancake.github.io/After-Effects-Fun/html/imagetoexpression">
+		<meta property="og:site_name" content="Image to Expression">
+		<meta property="og:description" content="Bootleg image converter.">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<style>
+		* {
+			color: white;
+			font-family: monospace;
+		}
 
+		html, body {
+			background-color: black;
+		}
+
+		canvas {
+			float: left;
+		}
+
+		textarea {
+			background-color: black;
+			height: 32em;
+			width: 100%;
+		}
+		</style>
+		<script>
+		let canvas;
+		let textarea;
+
+		function setup() {
+			canvas = document.getElementById("canvas");
+			textarea = document.getElementById("textarea");
+		}
+
+		function imageToExpression(elem) {
+			if (elem.files && elem.files[0]) {
+				const reader = new FileReader();
+				reader.onload = function() {
+					const image = new Image();
+					image.src = this.result;
+					image.onload = function() {
+						canvas.width = this.width;
+						canvas.height = this.height;
+						const context = canvas.getContext("2d");
+						context.drawImage(this, 0, 0, this.width, this.height);
+						const data = context.getImageData(0, 0, this.width, this.height).data;
+						let palette = [];
+						let pixels = [];
+						for (let i = 0; i < data.length; i += 4) {
+							const r = data[i] / 255;
+							const g = data[i + 1] / 255;
+							const b = data[i + 2] / 255;
+							const a = data[i + 3] / 255;
+							const color = `[${r},${g},${b},${a}]`;
+							const colorIndex = palette.indexOf(color);
+							if (colorIndex !== -1) {
+								pixels.push(colorIndex);
+							} else {
+								palette.push(color);
+								const newIndex = palette.length - 1;
+								pixels.push(newIndex);
+							}
+						}
+						textarea.value = `const palette = [${palette.join(",")}];\nconst pixels = [${pixels.join(",")}];\npalette[pixels[timeToFrames(time)]] || value;`;
+						textarea.select();
+						document.execCommand("copy");
+					}
+				}
+				reader.readAsDataURL(elem.files[0]);
+			}
+		}
+		</script>
+	</head>
+	<body onload="setup();">
+		<input type="file" accept="image/*" onchange="imageToExpression(this);">
+		<canvas id="canvas" width="0" height="0"></canvas>
+		<textarea id="textarea"></textarea>
+	</body>
+</html>
