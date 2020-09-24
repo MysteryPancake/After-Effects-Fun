@@ -1,3 +1,4 @@
+// Inspired by http://geon.github.io/programming/2016/03/03/dsxyliea and Manofchalk on the r/AfterEffects Discord
 var words = value.split(" ");
 
 function ruin(word) {
