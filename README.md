@@ -2,11 +2,11 @@
 Small expressions, scripts and projects for Adobe After Effects.
 
 ## Projects
-[Playable pong in After Effects](./projects/PONG.aep)
+[Playable pong in After Effects](./projects/PONG)
 
 [![Playable Pong](https://img.youtube.com/vi/3HMT1M9F5yA/mqdefault.jpg)](https://youtu.be/3HMT1M9F5yA)
 
-[Drawing in After Effects](./projects/DRAW.aep)
+[Drawing in After Effects](./projects/DRAW)
 
 [![Drawing demo](https://img.youtube.com/vi/XxiwhegTduI/mqdefault.jpg)](https://youtu.be/XxiwhegTduI)
 
