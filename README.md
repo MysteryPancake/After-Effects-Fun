@@ -1,5 +1,5 @@
 # After Effects Fun
-Small expressions, scripts and projects for Adobe After Effects.
+Expressions, scripts and projects for Adobe After Effects.
 
 ## Projects
 [Playable pong in After Effects](./projects/PONG)
