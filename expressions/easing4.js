@@ -18,8 +18,7 @@ function spring(t, mass = 1, stiffness = 100, damping = 10, initialVelocity = 0)
 }
 
 function springEasing(t, tMin, tMax, value1, value2, mass, stiffness, damping, initialVelocity) {
-	var limitedT = Math.max(tMin, Math.min(t, tMax));
-	var normal = (limitedT - tMin) / (tMax - tMin);
+	var normal = (t - tMin) / (tMax - tMin);
 	var eased = spring(normal, mass, stiffness, damping, initialVelocity);
 	return (1 - eased) * value1 + eased * value2;
 }
