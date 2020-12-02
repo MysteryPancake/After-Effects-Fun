@@ -2,30 +2,30 @@
 Expressions, scripts and projects for Adobe After Effects.
 
 ## Projects
-[Playable Pong](./projects/PONG)
+[Playable Pong](projects/PONG)
 
 [![Pong demo](https://img.youtube.com/vi/3HMT1M9F5yA/mqdefault.jpg)](https://youtu.be/3HMT1M9F5yA)
 
-[Drawing](./projects/DRAW)
+[Drawing](projects/DRAW)
 
 [![Drawing demo](https://img.youtube.com/vi/XxiwhegTduI/mqdefault.jpg)](https://youtu.be/XxiwhegTduI)
 
 ## Expressions
 
-[Custom easings](./expressions/easing2.js)
+[Custom easings](expressions/easing2.js)
 
 [![Easings reference](https://img.youtube.com/vi/6qnkLmMJ2AE/mqdefault.jpg)](https://youtu.be/6qnkLmMJ2AE)
 [![Easings demo](https://img.youtube.com/vi/jy5WZwaGMhY/mqdefault.jpg)](https://youtu.be/jy5WZwaGMhY)
 
-[Spring easing](./expressions/easing4.js)
+[Spring easing](expressions/easing4.js)
 
-![Spring easing demo](images/SpringDemo.gif?raw=true)
+<img src="images/SpringDemo.gif?raw=true" width="320">
 
-[Path rotation](./expressions/pathrotation.js)
+[Path rotation](expressions/pathrotation.js)
 
 [![Path rotation demo](https://img.youtube.com/vi/_G5AHLrX-jU/mqdefault.jpg)](https://youtu.be/_G5AHLrX-jU)
 
-[Camera snapping](./expressions/camerasnap.js)
+[Camera snapping](expressions/camerasnap.js)
 
 [![Camera snapping demo](https://img.youtube.com/vi/VJOOgkROCwU/mqdefault.jpg)](https://youtu.be/VJOOgkROCwU)
 
