@@ -1,4 +1,4 @@
-// Easing thanks to Tim on /r/AfterEffects Discord (https://webkit.org/demos/spring/spring.js)
+// Easing thanks to Tim Haywood on the /r/AfterEffects Discord (https://webkit.org/demos/spring/spring.js)
 function spring(t, mass = 1, stiffness = 100, damping = 10, initialVelocity = 0) {
 	var m_w0 = Math.sqrt(stiffness / mass);
 	var m_zeta = damping / (2 * Math.sqrt(stiffness * mass));
