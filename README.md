@@ -17,6 +17,10 @@ Expressions, scripts and projects for Adobe After Effects.
 [![Easings reference](https://img.youtube.com/vi/6qnkLmMJ2AE/mqdefault.jpg)](https://youtu.be/6qnkLmMJ2AE)
 [![Easings demo](https://img.youtube.com/vi/jy5WZwaGMhY/mqdefault.jpg)](https://youtu.be/jy5WZwaGMhY)
 
+[Spring easing](./expressions/easing4.js)
+
+![Spring easing demo](images/SpringDemo.gif?raw=true)
+
 [Path rotation](./expressions/pathrotation.js)
 
 [![Path rotation demo](https://img.youtube.com/vi/_G5AHLrX-jU/mqdefault.jpg)](https://youtu.be/_G5AHLrX-jU)
