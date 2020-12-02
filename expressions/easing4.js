@@ -27,4 +27,4 @@ function springEasing(t, tMin, tMax, value1, value2, mass, stiffness, damping, i
 }
 
 // EXAMPLE USAGE:
-springEasing(time, 0, 1, [0, 0], [960, 540]);
+springEasing(time, 0, 1, [0, 0], [960, 540], 1, 100, 10, 0);
