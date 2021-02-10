@@ -1,5 +1,8 @@
 // Written by fad on the /r/AfterEffects Discord
 
+// This interpolates between keyframes like keyselectorvalue, but allows keyframes to be skipped
+// For example, if the slider goes from 1 to 3, it skips keyframe 2 and interpolates directly from 1 to 3
+
 // use a slider to keyframe key indexes ("poses") to interpolate between without interpolating through the intermediate keyframes 
 var s = effect("Slider Control")("Slider");
 
