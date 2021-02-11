@@ -1,4 +1,4 @@
-// Written by conigs on the /r/AfterEffects Discord
+// Refactor by conigs on the /r/AfterEffects Discord
 
 // Slider named "Key Selector"
 const keySelector = effect("Key Selector")(1).value;
