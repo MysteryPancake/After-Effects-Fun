@@ -1,4 +1,6 @@
-var blueToRedRatio = 0; // between 0 and 1
+// Lerps from blue -> yellow -> red
+
+var blueToRedRatio = 0; // Between 0 and 1
 
 if (blueToRedRatio < 0.5) {
 	// Blue to yellow
