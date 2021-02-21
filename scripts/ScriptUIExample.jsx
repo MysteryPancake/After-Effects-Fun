@@ -1,6 +1,6 @@
 (function(thisObj) {
 
-	function ButtonClick() {
+	function buttonClick() {
 
 		// activeItem is usually the composition open at the moment
 		var activeItem = app.project.activeItem;
@@ -88,10 +88,12 @@
 
 	function buildUI(thisObj) {
 
-		var myPanel = (thisObj instanceof Panel) ? thisObj : new Window("palette", "Window Title", undefined, { resizeable: true });
+		// Create a window if the script is run directly, otherwise make it a panel which can be docked
+		var myPanel = (thisObj instanceof Panel) ? thisObj : new Window("window", "Window Title", undefined, { resizeable: true });
 
 		var mainButton = myPanel.add("button", undefined, "CLICK ME");
-		mainButton.onClick = ButtonClick;
+		// Run the main code when the button gets clicked
+		mainButton.onClick = buttonClick;
 
 		myPanel.onResizing = myPanel.onResize = function() {
 			this.layout.resize();
