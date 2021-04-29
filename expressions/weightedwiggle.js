@@ -6,7 +6,8 @@ var amplitude = 500;
 
 var wigglePosition = wiggle(frequency, amplitude) - value;
 var targetPosition = [250, 250]; // This should be within the amplitude range, e.g -500 to 500
-// With a slider, use targetPosition = [effect("Slider Control")("Slider"), effect("Slider Control")("Slider")];
+// If you want to approach a 1 dimensional number:
+// var targetPosition = [effect("Slider Control")("Slider"), effect("Slider Control")("Slider")];
 
 var targetPosition /= amplitude;
 var distanceToTarget = length(wigglePosition, targetPosition);
