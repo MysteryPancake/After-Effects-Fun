@@ -21,6 +21,10 @@ Expressions, scripts and projects for Adobe After Effects.
 
 <img src="images/SpringDemo.gif?raw=true" width="320">
 
+[Limitless linear](expressions/linear.js)
+
+<img src="images/LinearDemo.gif?raw=true" width="320">
+
 [Path rotation](expressions/pathrotation.js)
 
 [![Path rotation demo](https://img.youtube.com/vi/_G5AHLrX-jU/mqdefault.jpg)](https://youtu.be/_G5AHLrX-jU)
