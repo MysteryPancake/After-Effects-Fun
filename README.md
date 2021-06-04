@@ -14,7 +14,7 @@ Expressions, scripts and projects for Adobe After Effects.
 
 [Custom easings](expressions/easing2.js)
 
-[![Easings reference](https://img.youtube.com/vi/6qnkLmMJ2AE/mqdefault.jpg)](https://youtu.be/6qnkLmMJ2AE)
+[<img src="images/EasingDemo.gif?raw=true" width="320" alt="Easings reference">](https://youtu.be/6qnkLmMJ2AE)
 [![Easings demo](https://img.youtube.com/vi/jy5WZwaGMhY/mqdefault.jpg)](https://youtu.be/jy5WZwaGMhY)
 
 [Spring easing](expressions/easing4.js)
