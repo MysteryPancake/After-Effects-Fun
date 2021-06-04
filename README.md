@@ -19,11 +19,11 @@ Expressions, scripts and projects for Adobe After Effects.
 
 [Spring easing](expressions/easing4.js)
 
-<img src="images/SpringDemo.gif?raw=true" width="320">
+[<img src="images/SpringDemo.gif?raw=true" width="320" alt="Spring easing demo">](expressions/easing4.js)
 
 [Limitless linear](expressions/linear.js)
 
-<img src="images/LinearDemo.gif?raw=true" width="320">
+[<img src="images/LinearDemo.gif?raw=true" width="320" alt="Limitless linear demo">](expressions/linear.js)
 
 [Path rotation](expressions/pathrotation.js)
 
