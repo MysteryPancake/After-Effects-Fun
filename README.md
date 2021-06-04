@@ -4,11 +4,11 @@ Expressions, scripts and projects for Adobe After Effects.
 ## Projects
 [Playable Pong](projects/PONG)
 
-[![Pong demo](https://img.youtube.com/vi/3HMT1M9F5yA/mqdefault.jpg)](https://youtu.be/3HMT1M9F5yA)
+[<img src="images/PongDemo.gif?raw=true" width="320" alt="Pong demo">](https://youtu.be/3HMT1M9F5yA)
 
 [Drawing](projects/DRAW)
 
-[![Drawing demo](https://img.youtube.com/vi/XxiwhegTduI/mqdefault.jpg)](https://youtu.be/XxiwhegTduI)
+[<img src="images/DrawDemo.gif?raw=true" width="320" alt="Drawing demo">](https://youtu.be/XxiwhegTduI)
 
 ## Expressions
 
