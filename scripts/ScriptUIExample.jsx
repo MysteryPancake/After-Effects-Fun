@@ -64,7 +64,7 @@
 					// Add a slider to the effects list
 					var slider = effectsProperty.addProperty("ADBE Slider Control");
 					// Add an effect to the effects list
-					var noise = effectsProperty.addProperty("Fractal Noise");
+					var noise = effectsProperty.addProperty("ADBE Fractal Noise");
 
 					// Get the brightness property of the noise
 					var noiseContrast = noise.property("Brightness");
