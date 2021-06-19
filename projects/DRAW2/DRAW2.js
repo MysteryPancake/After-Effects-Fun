@@ -1,6 +1,6 @@
 // ON PEN POSITION
 
-if ($.globalVar) {
+if (typeof $.globalVar !== "undefined") {
 	$.globalVar.push(value)
 } else {
 	$.globalVar = [value];
@@ -9,7 +9,7 @@ value;
 
 // ON PATH
 
-if ($.globalVar) {
+if (typeof $.globalVar !== "undefined") {
 	createPath($.globalVar, [], [], false);
 } else {
 	value;
