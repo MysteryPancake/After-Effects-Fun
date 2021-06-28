@@ -38,9 +38,12 @@
 			width: 100%;
 		}
 
+		#copybutton2 {
+			display: none;
+		}
+
 		input[type="button"] {
 			background-color: black;
-			display: none;
 			font-size: large;
 			padding: 8px 16px;
 		}
@@ -59,12 +62,16 @@
 		<script>
 		let canvas;
 		let textArea;
+		let textArea2;
 		let copyButton;
+		let copyButton2;
 
 		function setup() {
 			canvas = document.getElementById("canvas");
 			textArea = document.getElementById("textarea");
+			textArea2 = document.getElementById("textarea2");
 			copyButton = document.getElementById("copybutton");
+			copyButton2 = document.getElementById("copybutton2");
 		}
 
 		function imageToExpression(elem) {
@@ -95,10 +102,10 @@
 								pixels.push(palette.length - 1);
 							}
 						}
-						textArea.value = `var palette = [${palette.join(",")}];\nvar pixels = [${pixels.join(",")}];\npalette[pixels[timeToFrames(time)]] || value;`;
-						textArea.select();
-						copyButton.value = "Copy";
-						copyButton.style.display = "block";
+						textArea2.value = `var palette = [${palette.join(",")}];\nvar pixels = [${pixels.join(",")}];\npalette[pixels[timeToFrames(time)]] || value;`;
+						textArea2.select();
+						copyButton2.value = "Copy";
+						copyButton2.style.display = "block";
 					}
 				}
 				reader.readAsDataURL(elem.files[0]);
@@ -109,6 +116,12 @@
 			textArea.select();
 			document.execCommand("copy");
 			copyButton.value = "Copied";
+		}
+
+		function copyText2() {
+			textArea2.select();
+			document.execCommand("copy");
+			copyButton2.value = "Copied";
 		}
 		</script>
 	</head>
@@ -122,14 +135,15 @@
 		<div>
 			<div class="half">
 				<h2>Brush Position</h2>
-				<textarea readonly>var x = timeToFrames(time) % thisComp.width;
+				<textarea id="textarea" readonly>var x = timeToFrames(time) % thisComp.width;
 var y = Math.floor(timeToFrames(time) / thisComp.width);
 [x+1, y+1];</textarea>
+				<input id="copybutton" type="button" value="Copy" onclick="copyText();">
 			</div>
 			<div class="half">
 				<h2>Brush Color</h2>
-				<textarea id="textarea" readonly></textarea>
-				<input id="copybutton" type="button" value="Copy" onclick="copyText();">
+				<textarea id="textarea2" readonly></textarea>
+				<input id="copybutton2" type="button" value="Copy" onclick="copyText2();">
 			</div>
 		</div>
 	</body>
