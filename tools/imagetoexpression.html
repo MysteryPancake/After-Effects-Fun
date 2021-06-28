@@ -12,12 +12,16 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<style>
 		* {
-			color: white;
-			font-family: "Trebuchet MS", Helvetica, sans-serif;
+			color: #CCCCCC;
+			font-family: system-ui, Arial, Helvetica, sans-serif;
 		}
 
 		html, body {
-			background-color: black;
+			background-color: #272727;
+		}
+
+		body {
+			margin: 16px;
 		}
 
 		canvas {
@@ -25,12 +29,20 @@
 		}
 
 		textarea {
-			background-color: black;
+			background-color: #1D1D1D;
 			box-sizing: border-box;
+			color: #CCCCCC;
 			font-family: "Lucida Console", Monaco, monospace;
 			height: 16em;
 			resize: vertical;
 			width: 100%;
+		}
+
+		input[type="button"] {
+			background-color: black;
+			display: none;
+			font-size: large;
+			padding: 8px 16px;
 		}
 
 		.half {
@@ -46,11 +58,13 @@
 		</style>
 		<script>
 		let canvas;
-		let textarea;
+		let textArea;
+		let copyButton;
 
 		function setup() {
 			canvas = document.getElementById("canvas");
-			textarea = document.getElementById("textarea");
+			textArea = document.getElementById("textarea");
+			copyButton = document.getElementById("copybutton");
 		}
 
 		function imageToExpression(elem) {
@@ -78,22 +92,29 @@
 								pixels.push(colorIndex);
 							} else {
 								palette.push(color);
-								const newIndex = palette.length - 1;
-								pixels.push(newIndex);
+								pixels.push(palette.length - 1);
 							}
 						}
-						textarea.value = `const palette = [${palette.join(",")}];\nconst pixels = [${pixels.join(",")}];\npalette[pixels[timeToFrames(time)]] || value;`;
-						textarea.select();
-						document.execCommand("copy");
+						textArea.value = `var palette = [${palette.join(",")}];\nvar pixels = [${pixels.join(",")}];\npalette[pixels[timeToFrames(time)]] || value;`;
+						textArea.select();
+						copyButton.value = "Copy";
+						copyButton.style.display = "block";
 					}
 				}
 				reader.readAsDataURL(elem.files[0]);
 			}
 		}
+
+		function copyText() {
+			textArea.select();
+			document.execCommand("copy");
+			copyButton.value = "Copied";
+		}
 		</script>
 	</head>
 	<body onload="setup();">
 		<h1>Image to expression converter</h1>
+		<p>This generates expressions to draw your image pixel by pixel using the "Write-On" effect. It is extremely slow for large images.</p>
 		<div id="top">
 			<input type="file" accept="image/*" onchange="imageToExpression(this);">
 			<canvas id="canvas" width="0" height="0"></canvas>
@@ -101,13 +122,14 @@
 		<div>
 			<div class="half">
 				<h2>Brush Position</h2>
-				<textarea readonly>const x = timeToFrames(time)%thisComp.width;
-const y = Math.floor(timeToFrames(time)/thisComp.width);
-[x+1,y+1]</textarea>
+				<textarea readonly>var x = timeToFrames(time) % thisComp.width;
+var y = Math.floor(timeToFrames(time) / thisComp.width);
+[x+1, y+1];</textarea>
 			</div>
 			<div class="half">
 				<h2>Brush Color</h2>
 				<textarea id="textarea" readonly></textarea>
+				<input id="copybutton" type="button" value="Copy" onclick="copyText();">
 			</div>
 		</div>
 	</body>
