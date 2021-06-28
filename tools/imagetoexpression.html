@@ -25,13 +25,12 @@
 		}
 
 		canvas {
-			float: left;
+			display: block;
 		}
 
 		textarea {
 			background-color: #1D1D1D;
 			box-sizing: border-box;
-			color: #CCCCCC;
 			font-family: "Lucida Console", Monaco, monospace;
 			height: 16em;
 			resize: vertical;
@@ -44,6 +43,7 @@
 
 		input[type="button"] {
 			background-color: black;
+			color: white;
 			font-size: large;
 			padding: 8px 16px;
 		}
@@ -127,7 +127,7 @@
 	</head>
 	<body onload="setup();">
 		<h1>Image to expression converter</h1>
-		<p>This generates expressions to draw your image pixel by pixel using the "Write-On" effect. It is extremely slow for large images.</p>
+		<p>This generates expressions to draw your image pixel by pixel using the "Write-On" effect. This is extremely slow for large images.</p>
 		<div id="top">
 			<input type="file" accept="image/*" onchange="imageToExpression(this);">
 			<canvas id="canvas" width="0" height="0"></canvas>
