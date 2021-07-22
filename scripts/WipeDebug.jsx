@@ -9,7 +9,7 @@
 		var temp = activeItem.layers.addText();
 		// Wipe debug object
 		temp.text.sourceText.expression = "for (var key in $) delete $[key];";
-		// Wait for the viewport to refresh
+		// Hope the viewport refreshes (hacky)
 		$.sleep(100);
 		// Remove temporary layer
 		temp.remove();
