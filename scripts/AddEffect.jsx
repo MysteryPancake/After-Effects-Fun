@@ -1,17 +1,21 @@
-var currentComp = app.project.activeItem;
+(function() {
 
-// Make sure a composition is active
-if (currentComp != null && currentComp instanceof CompItem) {
+	var currentComp = app.project.activeItem;
 
-	// Get the selected layers in this composition
-    var selectedLayers = currentComp.selectedLayers;
+	// Make sure a composition is active
+	if (currentComp != null && currentComp instanceof CompItem) {
 
-    for (var i = 0; i < selectedLayers.length; i++) {
+		// Get the selected layers in this composition
+		var selectedLayers = currentComp.selectedLayers;
 
-    	// Get the effects list of this layer
-    	var effects = selectedLayers[i].property("ADBE Effect Parade");
+		for (var i = 0; i < selectedLayers.length; i++) {
 
-    	// Add Fractal Noise
-        effects.addProperty("ADBE Fractal Noise");
-    }
-}
+			// Get the effects list of this layer
+			var effects = selectedLayers[i].property("ADBE Effect Parade");
+
+			// Add Fractal Noise
+			effects.addProperty("ADBE Fractal Noise");
+		}
+	}
+
+})();
