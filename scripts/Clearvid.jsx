@@ -82,12 +82,10 @@
 	}
 	
 	function importMask() {
-		var activeItem = app.project.activeItem;
-		if ((activeItem == null) || !(activeItem instanceof CompItem)) {
-			alert("Please select a video in a composition first.");
-		} else {
-			var selectedLayers = activeItem.selectedLayers;
-			if (activeItem.selectedLayers.length === 0) {
+		var comp = app.project.activeItem;
+		if (comp !== null && comp instanceof CompItem) {
+			var selectedLayers = comp.selectedLayers;
+			if (comp.selectedLayers.length === 0) {
 				alert("Please select a video in the composition first.");
 			} else {
 				// Require a video layer to be selected to add the mask to
@@ -98,7 +96,7 @@
 					if (textFile.open("r")) {
 						var extension = textFile.name.split(".").pop();
 						if (extension === "txt") {
-							parse(textFile.read(), layer, activeItem);
+							parse(textFile.read(), layer, comp);
 						} else {
 							alert("Not a Clearvid Mask!\nPlease open .txt files, not ." + extension + " files!");
 							importMask();
@@ -111,6 +109,8 @@
 					alert("Please select a video layer.");
 				}
 			}
+		} else {
+			alert("Please select a video in a composition first.");
 		}
 	}
 
