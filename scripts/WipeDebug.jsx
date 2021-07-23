@@ -1,12 +1,13 @@
 (function() {
 	
-	var activeItem = app.project.activeItem;
 	// Make sure a composition is active
-	if ((activeItem == null) || !(activeItem instanceof CompItem)) {
+	var comp = app.project.activeItem;
+	
+	if ((comp == null) || !(comp instanceof CompItem)) {
 		alert("Please select or open a composition first.");
 	} else {
 		// Create temporary layer
-		var temp = activeItem.layers.addText();
+		var temp = comp.layers.addText();
 		// Wipe debug object
 		temp.text.sourceText.expression = "for (var key in $) delete $[key];";
 		// Hope the viewport refreshes (hacky)
