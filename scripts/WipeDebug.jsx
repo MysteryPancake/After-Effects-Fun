@@ -3,9 +3,7 @@
 	// Make sure a composition is active
 	var comp = app.project.activeItem;
 	
-	if ((comp == null) || !(comp instanceof CompItem)) {
-		alert("Please select or open a composition first.");
-	} else {
+	if (comp !== null && comp instanceof CompItem) {
 		// Create temporary layer
 		var temp = comp.layers.addText();
 		// Wipe debug object
@@ -14,6 +12,8 @@
 		$.sleep(100);
 		// Remove temporary layer
 		temp.remove();
+	} else {
+		alert("Please select or open a composition first.");
 	}
 
 })();
