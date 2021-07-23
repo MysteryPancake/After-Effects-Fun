@@ -3,24 +3,23 @@
 	function buttonClick() {
 
 		// activeItem is usually the composition open at the moment
-		var activeItem = app.project.activeItem;
+		var comp = app.project.activeItem;
 
 		// Make sure it is a composition
-		if ((activeItem == null) || !(activeItem instanceof CompItem)) {
-			alert("Please select or open a composition first.");
-		} else {
+		if (comp !== null && comp instanceof CompItem) {
+
 			// Get the selected layers in the composition (this is an array)
-			var selectedLayers = activeItem.selectedLayers;
+			var selectedLayers = comp.selectedLayers;
 
 			// No selected layers
-			if (activeItem.selectedLayers.length == 0) {
+			if (comp.selectedLayers.length === 0) {
 				alert("Please select at least one layer in the active comp first.");
 			} else {
 
 				// PART 1: ADDING MAIN CONTROLLER AND STUFF
 
 				// Get all layers in current comp
-				var allLayers = activeItem.layers;
+				var allLayers = comp.layers;
 				// Check if null controller exists
 				var controllerExists = false;
 
@@ -29,7 +28,7 @@
 					var compLayer = allLayers[i];
 
 					// The controller probably exists if there is a null called "MAIN CONTROLLER"
-					if (compLayer.nullLayer && compLayer.name == "MAIN CONTROLLER") {
+					if (compLayer.nullLayer && compLayer.name === "MAIN CONTROLLER") {
 						controllerExists = true;
 					}
 				}
@@ -37,7 +36,7 @@
 					alert("Controller already exists! No controller created.");
 				} else {
 					// Create null controller
-					var controller = activeItem.layers.addNull();
+					var controller = comp.layers.addNull();
 					controller.source.name = "MAIN CONTROLLER";
 
 					// Add a couple of sliders to the controller
@@ -82,6 +81,9 @@
 					noiseRotation.expression = "thisComp.layer(\"MAIN CONTROLLER\").effect(\"NOISE ROTATION\")(\"Slider\")";
 				}
 			}
+
+		} else {
+			alert("Please select or open a composition first.");
 		}
 
 	}

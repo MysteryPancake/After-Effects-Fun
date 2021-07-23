@@ -1,12 +1,12 @@
 (function() {
 
-	var currentComp = app.project.activeItem;
+	var comp = app.project.activeItem;
 
 	// Make sure a composition is active
-	if (currentComp != null && currentComp instanceof CompItem) {
+	if (comp !== null && comp instanceof CompItem) {
 
 		// Get the selected layers in this composition
-		var selectedLayers = currentComp.selectedLayers;
+		var selectedLayers = comp.selectedLayers;
 
 		for (var i = 0; i < selectedLayers.length; i++) {
 
@@ -16,6 +16,8 @@
 			// Add Fractal Noise
 			effects.addProperty("ADBE Fractal Noise");
 		}
+	} else {
+		alert("Please select or open a composition first.");
 	}
 
 })();
