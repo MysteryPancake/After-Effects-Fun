@@ -44,7 +44,7 @@ To have fun in After Effects, I often need to store data in memory and share it 
 
 Many consider this impossible, but I found the following exploits:
 
-### Exploit 1: Variable Leaking (JavaScript)
+### Exploit 1: Variable Leaking (JavaScript only)
 
 I discovered variable names aren't properly deleted by After Effects.
 ```javascript
@@ -52,7 +52,7 @@ I discovered variable names aren't properly deleted by After Effects.
 Object.keys(this);
 ```
 
-`Object.keys(this)` reads all current variable names, but not values. Therefore to store values, I put the value in the name.
+`Object.keys(this)` reads variable names, but not values. To store values, I put them in the name itself.
 
 ```javascript
 // Write a variable named "leak"
@@ -62,7 +62,7 @@ var leak;
 var leak_5;
 
 // Write any variable name you want
-var name = "hello";
+const name = "hello";
 eval(`var ${name}`);
 
 // Add a "leak_" prefix to identify which variables we own
@@ -74,36 +74,70 @@ Object.keys(this);
 // Returns ["leak", "leak_5", "hello", "leak_hello"] among others
 ```
 
-Using this concept, you can store all kinds of data in the variable name itself.
+Using this concept, you can store multiple types of data in one variable name.
 
-However there are many limits to storing values in names, so you have to be creative.
+```javascript
+// Write 2 values into a single name
+const writeX = 5;
+const writeY = "hi";
 
-### Exploit 2: The Debug Object
+eval(`var leak_${writeX}_${writeY}`);
+
+// Read values by splitting
+const parts = Object.keys(this).pop().split("_"); // ["leak", "5", "hi"]
+
+const readX = parseInt(parts[1]); // 5
+const readY = parts[2]; // "hi"
+```
+
+There are many characters not allowed in variable names, so [you have to be creative](projects/PONG/PONG.js#L92-L100).
+
+### Exploit 2: The Debug Object (Both)
 
 [@stibinator](https://github.com/stibinator) discovered the debug object `$`.
 
-`$` allows any form of data to be stored, including objects and arrays.<br>
+`$` allows any type of data to be stored.
 
 ```javascript
-// Store using variable leaking
-var leak_5;
-Object.keys(this).pop(); // "leak_5"
-
-// Store using debug object
+// Write number
 $.leak = 5;
+
+// Read number
 $.leak; // 5
+
+// Write complex data
+$.leak2 = [
+    {
+        name: "Jeff",
+        age: 20
+    },
+    {
+        name: "Joe",
+        age: 1
+    }
+];
+
+// Read complex data
+$.leak2; // [{ name: "Jeff", age: 20 }, { name: "Joe", age: 1 }]
+
+// Write using a custom key
+const key = "leak3";
+$[key] = 123;
+
+// Read using a custom key
+$[key]; // 123
 ```
 
-It also works in ExtendScript, although `Object.keys(this)` does not.
+It also works in ExtendScript, though `Object.keys(this)` does not.
 
-### Exploit 3: Environment Variables (ExtendScript)
+### Exploit 3: Environment Variables (ExtendScript only)
 
 I discovered the ExtendScript expression engine has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv).<br>
 ```javascript
-$.setenv(key, value)
+$.setenv(key, value);
 ```
 
-However it only allows strings to be stored.
+However it only stores strings.
 
 ```javascript
 $.setenv("leak", 5);
@@ -111,8 +145,6 @@ $.getenv("leak"); // "5"
 ```
 
 ### Summary
-
-There are 3 options for storing global variables:
 
 |Exploit|Engine|Capable of storing|Set|Get|
 |:---|:---|:---|:--|:--|
