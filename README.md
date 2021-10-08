@@ -49,18 +49,14 @@ Many consider this impossible, but I found the following exploits:
 
 I discovered variable names aren't properly deleted by After Effects until it gets restarted.
 ```javascript
-// Read all variable names
-Object.keys(this);
-```
-
-[`Object.keys(this)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys) reads variable names, but not values.
-
-```javascript
-// Write a variable name and a value to be discarded
+// Write variable named "leak"
 var leak = 5;
+
+// Read all variable names
+Object.keys(this); // ["leak"]
 ```
 
-Therefore to store values, I put them in the name itself.
+[`Object.keys(this)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys) reads variable names, but not values. Therefore to store values, I put them in the name itself.
 
 ```javascript
 // Write a variable name with the value on the end
@@ -82,9 +78,7 @@ eval(`var leak_${name}`);
 
 ```javascript
 // Read all variable names (shared between all expressions)
-Object.keys(this);
-
-// Returns ["leak", "leak_5", "hello", "leak_hello"] among others
+Object.keys(this); // ["leak", "leak_5", "hello", "leak_hello"]
 ```
 
 Using this concept, you can store multiple types of data in one variable name.
