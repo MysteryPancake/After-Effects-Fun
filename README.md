@@ -114,11 +114,11 @@ You can delete variable names like so:
 delete leak_5_hi;
 ```
 
-There are many characters not allowed in variable names, so [you have to be creative](projects/PONG/PONG.js#L92-L100).
+[Many characters aren't allowed in variable names](https://www.dummies.com/web-design-development/javascript/naming-javascript-variables/), so [you have to be creative](projects/PONG/PONG.js#L92-L100).
 
 ### 2. The Debug Object (JavaScript + ExtendScript)
 
-[@stibinator](https://github.com/stibinator) discovered the debug object `$`.
+[@stibinator](https://github.com/stibinator) informed me of the debug object `$`.
 
 `$` is shared between all expressions, and remains in memory until After Effects is restarted.
 
@@ -130,7 +130,7 @@ $.leak = 5;
 $.leak; // 5
 ```
 
-`$` also allows any type of data to be stored:
+`$` allows any type of data to be stored:
 
 ```javascript
 // Write complex data
@@ -149,6 +149,8 @@ $.leak2 = [
 $.leak2; // [{ name: "Jeff", age: 20 }, { name: "Joe", age: 1 }]
 ```
 
+`$` allows custom keys:
+
 ```javascript
 // Write using a custom key
 const key = "leak3";
@@ -158,11 +160,11 @@ $[key] = 123;
 $[key]; // 123
 ```
 
-It also works in ExtendScript, though `Object.keys(this)` does not.
+`$` also works in ExtendScript, though `Object.keys(this)` doesn't.
 
 ### 3. Environment Variables (ExtendScript only)
 
-I discovered ExtendScript has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv):
+I discovered ExtendScript has a method to [sets environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv):
 ```javascript
 $.setenv(key, value);
 ```
