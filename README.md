@@ -49,7 +49,7 @@ Many consider this impossible, but I found the following exploits:
 
 I discovered variable names aren't properly deleted by After Effects until it gets restarted.
 ```javascript
-// Write variable named "leak"
+// Write a variable named "leak" and a value
 var leak = 5;
 
 // Read all variable names
@@ -59,7 +59,7 @@ Object.keys(this); // ["leak"]
 [`Object.keys(this)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys) reads variable names, but not values. Therefore to store values, I put them in the name itself.
 
 ```javascript
-// Write a variable name with the value on the end
+// Write a variable named "leak_5"
 var leak_5;
 ```
 
