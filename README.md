@@ -46,13 +46,13 @@ Many consider this impossible, but I found the following exploits:
 
 ### Exploit 1: Variable Leaking (JavaScript only)
 
-I discovered variable names aren't properly deleted by After Effects.
+I discovered variable names aren't properly deleted by After Effects. You can check this with `Object.keys(this)`.
 ```javascript
 // Read all variable names
 Object.keys(this);
 ```
 
-`Object.keys(this)` reads variable names, but not values. To store values, I put them in the name itself.
+It reads variable names, but not values. Therefore to store values, I put them in the name itself.
 
 ```javascript
 // Write a variable named "leak"
