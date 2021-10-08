@@ -38,3 +38,95 @@ Expressions, scripts and projects for Adobe After Effects.
 
 [![Expression converter](https://img.youtube.com/vi/sEwBKQni7kU/mqdefault.jpg)](https://youtu.be/sEwBKQni7kU)
 [![Expression demo](https://img.youtube.com/vi/OfXQXMyMp-U/mqdefault.jpg)](https://youtu.be/OfXQXMyMp-U)
+
+## Global Variables
+To have fun in After Effects, I often need to store data in memory and share it between expressions.
+
+Many consider this impossible, but I found many exploits to achieve this:
+
+### Exploit 1: Variable Leaking
+
+I discovered variable names aren't properly deleted by After Effects.<br>
+You can test this by running `Object.keys(this)` in JavaScript.
+
+`Object.keys(this)` reads all current variable names, but not values.<br>
+Therefore to store values, I put the value in the name itself.
+
+`eval("var leak")` means you write a variable named `"leak"`.<br>
+`eval("var leak_5")` means you write a variable named `"leak_5"`<br>
+`eval("var leak_" + x)` means you can write anything you want to store.
+
+For example, if x was 530, you get `"leak_530"`, then split it into `"leak"` and `"530"`.
+
+I added `"leak_"` to the variable name so I can tell which variables aren't built-in.
+
+Using this idea, you can store all kinds of data in the variable name itself.<br>
+However, there are many limits to storing values in names, so you have to be creative.
+
+### Exploit 2: The Debug Object $
+
+Later [@stibinator](https://github.com/stibinator) informed me of his discovery: the debug object (`$`).
+
+`$` allows any form of data to be stored, including objects and arrays.<br>
+For example, `$.leak = 5` instead of `eval("var leak_5")`.
+
+This is an extremely powerful and flexible method.
+
+### Exploit 3: Environment Variables
+
+Later I discovered ExtendScript has a method for setting environment variables.<br>
+```javascript
+$.setenv(key, value)
+```
+
+However it only allows strings to be stored, so it's not as useful.
+
+### Summary
+
+There are 3 options for storing global variables:
+
+#### 1. Variable leaking (JavaScript only)
+
+```javascript
+// Set value
+var str = "hello_this_is_global";
+eval(`var ${str}`);
+```
+
+```javascript
+// Get value
+Object.keys(this).pop();
+```
+
+Capable of storing:
+Strings, excluding certain characters
+
+#### 2. The debug object (JavaScript and ExtendScript)
+
+```javascript
+// Set value
+$.str = "hello_this_is_global";
+```
+
+```javascript
+// Get value
+$.str;
+```
+
+Capable of storing:
+Any type of data!
+
+#### 3. Environment variables (ExtendScript only)
+
+```javascript
+// Set value
+$.setenv("str", "hello_this_is_global");
+```
+
+```javascript
+// Get value
+$.getenv("str");
+```
+
+Capable of storing:
+Strings
