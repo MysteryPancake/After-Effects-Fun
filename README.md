@@ -114,8 +114,8 @@ $.getenv("leak"); // "5"
 
 There are 3 options for storing global variables:
 
-|Exploit|Expression engine|Capable of storing|Get|Set|
+|Exploit|Engine|Capable of storing|Set|Get|
 |:---|:---|:---|:--|:--|
-|Variable leaking|JavaScript|Strings (excluding special characters)|`Object.keys(this)`|```eval(`var ${x}`)```|
-|The debug object|Both|Anything|`$.key`|`$.key = value`|
-|Environment variables|ExtendScript|Strings|`$.getenv(key)`|`$.setenv(key, value)`|
+|Variable leaking|JavaScript|Strings (excluding special characters)|```eval(`var ${x}`)```|`Object.keys(this)`|
+|The debug object|Both|Anything|`$.key = value`|`$.key`|
+|Environment variables|ExtendScript|Strings|`$.setenv(key, value)`|`$.getenv(key)`|
