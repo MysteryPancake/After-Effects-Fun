@@ -12,6 +12,8 @@ Expressions, scripts and projects for Adobe After Effects.
 
 ## Expressions
 
+[Variable leaking with ExtendScript support](expressions/globalvariables.js)
+
 [Custom easings](expressions/easing2.js)
 
 [<img src="images/EasingDemo.gif?raw=true" width="320" alt="Easings reference">](https://youtu.be/6qnkLmMJ2AE)
