@@ -116,7 +116,9 @@ $.leak = 5;
 
 // Read number
 $.leak; // 5
+```
 
+```javascript
 // Write complex data
 $.leak2 = [
     {
@@ -131,7 +133,9 @@ $.leak2 = [
 
 // Read complex data
 $.leak2; // [{ name: "Jeff", age: 20 }, { name: "Joe", age: 1 }]
+```
 
+```javascript
 // Write using a custom key
 const key = "leak3";
 $[key] = 123;
