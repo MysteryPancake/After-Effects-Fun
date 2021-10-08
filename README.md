@@ -47,7 +47,7 @@ Many consider this impossible, but I found the following exploits:
 
 ### Exploit 1: Variable Leaking (JavaScript engine only)
 
-I discovered variable names aren't properly deleted by After Effects until it gets restarted.
+I discovered variable names aren't properly deleted by After Effects until it gets restarted:
 ```javascript
 // Write a variable named "leak"
 var leak = 5;
@@ -56,14 +56,14 @@ var leak = 5;
 Object.keys(this); // ["leak"]
 ```
 
-[`Object.keys(this)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys) reads variable names, but not values. Therefore to store values, I put them in the name itself.
+[`Object.keys(this)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys) reads variable names, but not values. Therefore to store values, I put them in the name itself:
 
 ```javascript
 // Write a variable named "leak_5"
 var leak_5;
 ```
 
-[`eval()`](https://www.w3schools.com/jsref/jsref_eval.asp) allows dynamic variable names.
+[`eval()`](https://www.w3schools.com/jsref/jsref_eval.asp) allows dynamic variable names:
 
 ```javascript
 // Write any variable name you want
@@ -71,11 +71,12 @@ const name = "hello";
 eval(`var ${name}`);
 ```
 
-To tell whether a variable is built-in, you could add a prefix:
+To tell whether a variable is built-in, you can add a prefix:
 
 ```javascript
 // Add a "leak_" prefix to identify custom variables
-eval(`var leak_${name}`);
+const data = "hello";
+eval(`var leak_${data}`);
 ```
 
 ```javascript
@@ -83,7 +84,7 @@ eval(`var leak_${name}`);
 Object.keys(this); // ["leak", "leak_5", "hello", "leak_hello"]
 ```
 
-Using this concept, you can store multiple types of data in one variable name.
+Using this concept, you can store multiple types of data in one variable name:
 
 ```javascript
 // Write 2 values into a single name
@@ -101,7 +102,7 @@ const readX = parseInt(parts[1]); // 5
 const readY = parts[2]; // "hi"
 ```
 
-You can also delete variable names like so:
+You can delete variable names like so:
 
 ```javascript
 // Delete variable named "leak_5_hi"
@@ -114,7 +115,7 @@ There are many characters not allowed in variable names, so [you have to be crea
 
 [@stibinator](https://github.com/stibinator) discovered the debug object `$`.
 
-`$` allows any type of data to be stored.
+`$` allows any type of data to be stored:
 
 ```javascript
 // Write number
@@ -154,12 +155,12 @@ It also works in ExtendScript, though `Object.keys(this)` does not.
 
 ### Exploit 3: Environment Variables (ExtendScript engine only)
 
-I discovered ExtendScript has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv).<br>
+I discovered ExtendScript has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv):
 ```javascript
 $.setenv(key, value);
 ```
 
-However it only stores strings.
+However it only stores strings:
 
 ```javascript
 $.setenv("leak", 5);
