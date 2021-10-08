@@ -47,7 +47,7 @@ Many consider this impossible, but I found many exploits to achieve this:
 ### Exploit 1: Variable Leaking
 
 I discovered variable names aren't properly deleted by After Effects.<br>
-You can test this by running `Object.keys(this)` in JavaScript.
+You can test this by running `Object.keys(this)` in the JavaScript expression engine.
 
 `Object.keys(this)` reads all current variable names, but not values.<br>
 Therefore to store values, I put the value in the name itself.
@@ -74,18 +74,24 @@ This is an extremely powerful and flexible method.
 
 ### Exploit 3: Environment Variables
 
-Later I discovered ExtendScript has a method for setting environment variables.<br>
+Later I discovered the ExtendScript expression engine has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv).<br>
 ```javascript
 $.setenv(key, value)
 ```
 
-However it only allows strings to be stored, so it's not as useful.
+However it only allows strings to be stored.
 
 ### Summary
 
 There are 3 options for storing global variables:
 
-#### 1. Variable leaking (JavaScript only)
+|Exploit|Expression engine|Capable of storing|
+|:---|:---|:---|:---|:---|
+|Variable leaking|JavaScript|Strings, excluding special characters|
+|The debug object|Both|All types of data|
+|Environment variables|ExtendScript|Strings|
+
+#### 1. Variable leaking
 
 ```javascript
 // Set value
@@ -98,10 +104,7 @@ eval(`var ${str}`);
 Object.keys(this).pop();
 ```
 
-Capable of storing:
-Strings, excluding certain characters
-
-#### 2. The debug object (JavaScript and ExtendScript)
+#### 2. The debug object
 
 ```javascript
 // Set value
@@ -113,10 +116,7 @@ $.str = "hello_this_is_global";
 $.str;
 ```
 
-Capable of storing:
-Any type of data!
-
-#### 3. Environment variables (ExtendScript only)
+#### 3. Environment variables
 
 ```javascript
 // Set value
@@ -127,6 +127,3 @@ $.setenv("str", "hello_this_is_global");
 // Get value
 $.getenv("str");
 ```
-
-Capable of storing:
-Strings
