@@ -180,6 +180,6 @@ $.getenv("leak"); // "5"
 
 |Exploit|Engine|Capable of storing|Get|Set|
 |:---|:---|:---|:--|:--|
-|Variable leaking|JavaScript|Strings (excluding special characters)|`Object.keys(this)`|```eval(`var ${x}`)```|
+|Variable leaking|JavaScript|Strings (excluding special characters)|`Object.keys(this)`|```eval(`var ${value}`)```|
 |The debug object|Both|Anything|`$.key`|`$.key = value`|
 |Environment variables|ExtendScript|Strings|`$.getenv(key)`|`$.setenv(key, value)`|
