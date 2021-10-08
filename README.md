@@ -12,7 +12,7 @@ Expressions, scripts and projects for Adobe After Effects.
 
 ## Expressions
 
-[Variable leaking with ExtendScript support](expressions/globalvariables.js)
+[Global variable storage with ExtendScript support](expressions/globalvariables.js)
 
 [Custom easings](expressions/easing2.js)
 
