@@ -40,6 +40,7 @@ Expressions, scripts and projects for Adobe After Effects.
 [![Expression demo](https://img.youtube.com/vi/OfXQXMyMp-U/mqdefault.jpg)](https://youtu.be/OfXQXMyMp-U)
 
 ## Global Variables
+
 To have fun in After Effects, I often need to store data in memory and share it between expressions.
 
 Many consider this impossible, but I found the following exploits:
