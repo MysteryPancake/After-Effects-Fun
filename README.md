@@ -164,12 +164,12 @@ $[key]; // 123
 
 ### 3. Environment Variables (ExtendScript only)
 
-I discovered ExtendScript has a method to [sets environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv):
+I discovered ExtendScript has a method which [sets environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv):
 ```javascript
 $.setenv(key, value);
 ```
 
-However it only stores strings:
+However it only writes string values:
 
 ```javascript
 $.setenv("leak", 5);
