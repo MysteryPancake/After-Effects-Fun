@@ -178,7 +178,7 @@ $.getenv("leak"); // "5"
 
 ### Summary
 
-|Exploit|Engine|Capable of storing|Get|Set|
+|Exploit|Engine|Able to store|Get|Set|
 |:---|:---|:---|:--|:--|
 |Variable leaking|JavaScript|Strings (excluding special characters)|`Object.keys(this)`|```eval(`var ${value}`)```|
 |The debug object|Both|Anything|`$.key`|`$.key = value`|
