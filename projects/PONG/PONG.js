@@ -1,6 +1,6 @@
 /* This code uses my original variable leaking technique.
 
-GLOBAL VARIABLES OPTION 1: VARIABLE LEAKING
+EXPLOIT 1: VARIABLE LEAKING
 
 	I discovered variable names aren't properly deleted by After Effects.
 	You can test this by running Object.keys(this) in JavaScript.
@@ -29,7 +29,7 @@ GLOBAL VARIABLES OPTION 1: VARIABLE LEAKING
 	I swapped - and . with M and D, because variable names can't contain certain characters.
 	There are many other limits to storing values in names, so you have to be creative.
 
-GLOBAL VARIABLES OPTION 2: THE DEBUG OBJECT
+EXPLOIT 2: THE DEBUG OBJECT
 
 	Later a user named "stib" informed me about the $debug object, $.
 
@@ -38,7 +38,7 @@ GLOBAL VARIABLES OPTION 2: THE DEBUG OBJECT
 
 	Nowadays I use this method, because it's flexible and easy.
 
-GLOBAL VARIABLES OPTION 3: ENVIRONMENT VARIABLES
+EXPLOIT 3: ENVIRONMENT VARIABLES
 
 	Later I discovered ExtendScript has a method for setting environment variables.
 	$.setenv(key, value)
