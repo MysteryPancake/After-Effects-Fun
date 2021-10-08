@@ -45,7 +45,7 @@ To have fun in After Effects, I often need to store data in memory and share it 
 
 Many consider this impossible, but I found the following exploits:
 
-### Exploit 1: Variable Leaking (JavaScript only)
+### Exploit 1: Variable Leaking (JavaScript engine only)
 
 I discovered variable names aren't properly deleted by After Effects until it gets restarted.
 ```javascript
@@ -53,20 +53,30 @@ I discovered variable names aren't properly deleted by After Effects until it ge
 Object.keys(this);
 ```
 
-`Object.keys(this)` reads variable names, but not values. Therefore to store values, I put them in the name itself.
+[`Object.keys(this)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys) reads variable names, but not values.
 
 ```javascript
-// Write a variable named "leak"
-var leak;
+// Write a variable name and a value to be discarded
+var leak = 5;
+```
 
-// Write a variable named "leak_5"
+Therefore to store values, I put them in the name itself.
+
+```javascript
+// Write a variable name with the value on the end
 var leak_5;
+```
 
+[`eval()`](https://www.w3schools.com/jsref/jsref_eval.asp) allows any variable name to be created dynamically.
+
+```javascript
 // Write any variable name you want
 const name = "hello";
 eval(`var ${name}`);
+```
 
-// Add a "leak_" prefix to identify which variables we own
+```javascript
+// Add a "leak_" prefix to identify custom variables compared to built-in variables
 eval(`var leak_${name}`);
 ```
 
@@ -104,7 +114,7 @@ delete leak_5_hi;
 
 There are many characters not allowed in variable names, so [you have to be creative](projects/PONG/PONG.js#L92-L100).
 
-### Exploit 2: The Debug Object (Both)
+### Exploit 2: The Debug Object (Both engines)
 
 [@stibinator](https://github.com/stibinator) discovered the debug object `$`.
 
@@ -146,9 +156,9 @@ $[key]; // 123
 
 It also works in ExtendScript, though `Object.keys(this)` does not.
 
-### Exploit 3: Environment Variables (ExtendScript only)
+### Exploit 3: Environment Variables (ExtendScript engine only)
 
-I discovered the ExtendScript expression engine has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv).<br>
+I discovered ExtendScript has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv).<br>
 ```javascript
 $.setenv(key, value);
 ```
