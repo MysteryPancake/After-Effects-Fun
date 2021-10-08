@@ -1,12 +1,12 @@
 # After Effects Fun
-Expressions, scripts and projects for Adobe After Effects.
+Expressions, scripts and projects for Adobe After Effects. [Bonus hacks for fun!](#break)
 
 ## Projects
-[Playable Pong (JavaScript engine only)](projects/PONG)
+[Playable Pong (JavaScript only)](projects/PONG)
 
 [<img src="images/PongDemo.gif?raw=true" width="320" alt="Pong demo">](https://youtu.be/3HMT1M9F5yA)
 
-[Drawing (JavaScript engine only)](projects/DRAW)
+[Drawing (JavaScript only)](projects/DRAW)
 
 [<img src="images/DrawDemo.gif?raw=true" width="320" alt="Drawing demo">](https://youtu.be/XxiwhegTduI)
 
@@ -39,13 +39,14 @@ Expressions, scripts and projects for Adobe After Effects.
 [![Expression converter](https://img.youtube.com/vi/sEwBKQni7kU/mqdefault.jpg)](https://youtu.be/sEwBKQni7kU)
 [![Expression demo](https://img.youtube.com/vi/OfXQXMyMp-U/mqdefault.jpg)](https://youtu.be/OfXQXMyMp-U)
 
-## Global Variables
+<a name="break"></a>
+## Global Variable Exploits
 
 To have fun in After Effects, I often need to store data in memory and share it between expressions.
 
-Many consider this impossible, but I found the following exploits:
+Many consider this impossible, but I found several ways to do it:
 
-### Exploit 1: Variable Leaking (JavaScript engine only)
+### 1. Variable Leaking (JavaScript only)
 
 I discovered variable names aren't properly deleted by After Effects:
 ```javascript
@@ -113,7 +114,7 @@ delete leak_5_hi;
 
 There are many characters not allowed in variable names, so [you have to be creative](projects/PONG/PONG.js#L92-L100).
 
-### Exploit 2: The Debug Object (Both engines)
+### 2. The Debug Object (JavaScript + ExtendScript)
 
 [@stibinator](https://github.com/stibinator) discovered the debug object `$`.
 
@@ -157,7 +158,7 @@ $[key]; // 123
 
 It also works in ExtendScript, though `Object.keys(this)` does not.
 
-### Exploit 3: Environment Variables (ExtendScript engine only)
+### 3. Environment Variables (ExtendScript only)
 
 I discovered ExtendScript has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv):
 ```javascript
