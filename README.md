@@ -66,7 +66,7 @@ const name = "hello";
 eval(`var ${name}`);
 
 // Add a "leak_" prefix to identify which variables we own
-eval(`var leak_${value}`);
+eval(`var leak_${name}`);
 
 // Read all variable names (shared between all expressions)
 Object.keys(this);
