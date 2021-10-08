@@ -47,7 +47,7 @@ Many consider this impossible, but I found the following exploits:
 
 ### Exploit 1: Variable Leaking (JavaScript engine only)
 
-I discovered variable names aren't properly deleted by After Effects until it gets restarted:
+I discovered variable names aren't properly deleted by After Effects:
 ```javascript
 // Write a variable named "leak"
 var leak = 5;
@@ -55,6 +55,8 @@ var leak = 5;
 // Read all variable names
 Object.keys(this); // ["leak"]
 ```
+
+Variable names are shared between all expressions, and remain in memory until After Effects is restarted.
 
 [`Object.keys(this)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys) reads variable names, but not values. Therefore to store values, I put them in the name itself:
 
@@ -80,7 +82,7 @@ eval(`var leak_${data}`);
 ```
 
 ```javascript
-// Read all variable names (shared between all expressions)
+// Read all variable names
 Object.keys(this); // ["leak", "leak_5", "hello", "leak_hello"]
 ```
 
@@ -114,6 +116,8 @@ There are many characters not allowed in variable names, so [you have to be crea
 ### Exploit 2: The Debug Object (Both engines)
 
 [@stibinator](https://github.com/stibinator) discovered the debug object `$`.
+
+`$` is shared between all expressions, and remains in memory until After Effects is restarted.
 
 `$` allows any type of data to be stored:
 
