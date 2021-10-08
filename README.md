@@ -76,19 +76,6 @@ Object.keys(this);
 // Returns ["leak", "leak_5", "hello", "leak_hello"] among others
 ```
 
-This is what After Effects should do:
-
-```javascript
-// Delete last 2 variables
-delete hello;
-delete leak_hello;
-
-// Read all variable names (shared between all expressions)
-Object.keys(this);
-
-// Returns ["leak", "leak_5"] among others
-```
-
 Using this concept, you can store multiple types of data in one variable name.
 
 ```javascript
@@ -108,6 +95,19 @@ const readY = parts[2]; // "hi"
 ```
 
 There are many characters not allowed in variable names, so [you have to be creative](projects/PONG/PONG.js#L92-L100).
+
+You can also delete variable names like so:
+
+```javascript
+// Delete last 2 variables
+delete hello;
+delete leak_hello;
+
+// Read all variable names (shared between all expressions)
+Object.keys(this);
+
+// Returns ["leak", "leak_5"] among others
+```
 
 ### Exploit 2: The Debug Object (Both)
 
