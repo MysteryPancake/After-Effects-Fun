@@ -49,7 +49,7 @@ Many consider this impossible, but I found the following exploits:
 
 I discovered variable names aren't properly deleted by After Effects until it gets restarted.
 ```javascript
-// Write a variable named "leak" and a value
+// Write a variable named "leak"
 var leak = 5;
 
 // Read all variable names
@@ -63,7 +63,7 @@ Object.keys(this); // ["leak"]
 var leak_5;
 ```
 
-[`eval()`](https://www.w3schools.com/jsref/jsref_eval.asp) allows any variable name to be created dynamically.
+[`eval()`](https://www.w3schools.com/jsref/jsref_eval.asp) allows dynamic variable names.
 
 ```javascript
 // Write any variable name you want
@@ -71,8 +71,10 @@ const name = "hello";
 eval(`var ${name}`);
 ```
 
+To tell whether a variable is built-in, you could add a prefix:
+
 ```javascript
-// Add a "leak_" prefix to identify custom variables compared to built-in variables
+// Add a "leak_" prefix to identify custom variables
 eval(`var leak_${name}`);
 ```
 
