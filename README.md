@@ -67,11 +67,26 @@ eval(`var ${name}`);
 
 // Add a "leak_" prefix to identify which variables we own
 eval(`var leak_${name}`);
+```
 
+```javascript
 // Read all variable names (shared between all expressions)
 Object.keys(this);
 
 // Returns ["leak", "leak_5", "hello", "leak_hello"] among others
+```
+
+This is what After Effects should do:
+
+```javascript
+// Delete last 2 variables
+delete hello;
+delete leak_hello;
+
+// Read all variable names (shared between all expressions)
+Object.keys(this);
+
+// Returns ["leak", "leak_5"] among others
 ```
 
 Using this concept, you can store multiple types of data in one variable name.
@@ -82,7 +97,9 @@ const writeX = 5;
 const writeY = "hi";
 
 eval(`var leak_${writeX}_${writeY}`);
+```
 
+```javascript
 // Read values by splitting
 const parts = Object.keys(this).pop().split("_"); // ["leak", "5", "hi"]
 
