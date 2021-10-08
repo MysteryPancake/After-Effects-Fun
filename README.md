@@ -119,8 +119,6 @@ There are many characters not allowed in variable names, so [you have to be crea
 
 `$` is shared between all expressions, and remains in memory until After Effects is restarted.
 
-`$` allows any type of data to be stored:
-
 ```javascript
 // Write number
 $.leak = 5;
@@ -128,6 +126,8 @@ $.leak = 5;
 // Read number
 $.leak; // 5
 ```
+
+`$` also allows any type of data to be stored:
 
 ```javascript
 // Write complex data
