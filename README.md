@@ -1,7 +1,9 @@
 # After Effects Fun
-Expressions, scripts and projects for Adobe After Effects. [Bonus hacks for fun!](#break)
+Expressions, scripts and projects for Adobe After Effects.
 
 ## Projects
+These were made using [custom exploits](#break)!
+
 [Playable Pong (JavaScript only)](projects/PONG)
 
 [<img src="images/PongDemo.gif?raw=true" width="320" alt="Pong demo">](https://youtu.be/3HMT1M9F5yA)
