@@ -31,7 +31,7 @@ EXPLOIT 1: VARIABLE LEAKING
 
 EXPLOIT 2: THE DEBUG OBJECT
 
-	Later a user named "stib" informed me about the $debug object, $.
+	Later a user named "stib" informed me about the debug object, $.
 
 	$ allows any form of data to be stored, including objects and arrays.
 	For example, $.leak = 5 replaces eval("var leak_5").
@@ -43,7 +43,7 @@ EXPLOIT 3: ENVIRONMENT VARIABLES
 	Later I discovered ExtendScript has a method for setting environment variables.
 	$.setenv(key, value)
 
-	However, it only allows strings to be stored, so is not as useful.
+	However it only allows strings to be stored, so it's not as useful.
 
 SUMMARY
 
