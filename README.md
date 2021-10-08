@@ -42,7 +42,7 @@ Expressions, scripts and projects for Adobe After Effects.
 ## Global Variables
 To have fun in After Effects, I often need to store data in memory and share it between expressions.
 
-Many consider this impossible, but I found many exploits to achieve this:
+Many consider this impossible, but I found the following exploits:
 
 ### Exploit 1: Variable Leaking (JavaScript)
 
@@ -80,7 +80,7 @@ However there are many limits to storing values in names, so you have to be crea
 
 ### Exploit 2: The Debug Object
 
-Later [@stibinator](https://github.com/stibinator) informed me of the debug object `$`.
+[@stibinator](https://github.com/stibinator) discovered the debug object `$`.
 
 `$` allows any form of data to be stored, including objects and arrays.<br>
 
@@ -98,7 +98,7 @@ It also works in ExtendScript, although `Object.keys(this)` does not.
 
 ### Exploit 3: Environment Variables (ExtendScript)
 
-Later I discovered the ExtendScript expression engine has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv).<br>
+I discovered the ExtendScript expression engine has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv).<br>
 ```javascript
 $.setenv(key, value)
 ```
