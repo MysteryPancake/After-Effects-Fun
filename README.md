@@ -44,35 +44,59 @@ To have fun in After Effects, I often need to store data in memory and share it 
 
 Many consider this impossible, but I found many exploits to achieve this:
 
-### Exploit 1: Variable Leaking
+### Exploit 1: Variable Leaking (JavaScript)
 
-I discovered variable names aren't properly deleted by After Effects.<br>
-You can test this by running `Object.keys(this)` in the JavaScript expression engine.
+I discovered variable names aren't properly deleted by After Effects.
+```javascript
+// Read all variable names
+Object.keys(this);
+```
 
-`Object.keys(this)` reads all current variable names, but not values.<br>
-Therefore to store values, I put the value in the name itself.
+`Object.keys(this)` reads all current variable names, but not values. Therefore to store values, I put the value in the name.
 
-`eval("var leak")` means you write a variable named `"leak"`.<br>
-`eval("var leak_5")` means you write a variable named `"leak_5"`<br>
-`eval("var leak_" + x)` means you can write anything you want to store.
+```javascript
+// Write a variable named "leak"
+var leak;
 
-For example, if x was 530, you get `"leak_530"`, then split it into `"leak"` and `"530"`.
+// Write a variable named "leak_5"
+var leak_5;
 
-I added `"leak_"` to the variable name so I can tell which variables aren't built-in.
+// Write any variable name you want
+var name = "hello";
+eval(`var ${name}`);
 
-Using this idea, you can store all kinds of data in the variable name itself.<br>
-However, there are many limits to storing values in names, so you have to be creative.
+// Add a "leak_" prefix to identify which variables we own
+eval(`var leak_${value}`);
 
-### Exploit 2: The Debug Object $
+// Read all variable names (shared between all expressions)
+Object.keys(this);
 
-Later [@stibinator](https://github.com/stibinator) informed me of his discovery: the debug object (`$`).
+// Returns ["leak", "leak_5", "hello", "leak_hello"] among others
+```
+
+Using this concept, you can store all kinds of data in the variable name itself.
+
+However there are many limits to storing values in names, so you have to be creative.
+
+### Exploit 2: The Debug Object
+
+Later [@stibinator](https://github.com/stibinator) informed me of the debug object `$`.
 
 `$` allows any form of data to be stored, including objects and arrays.<br>
-For example, `$.leak = 5` instead of `eval("var leak_5")`.
 
-This is an extremely powerful and flexible method.
+```javascript
+// Store using variable leaking
+var leak_5;
+Object.keys(this).pop(); // "leak_5"
 
-### Exploit 3: Environment Variables
+// Store using debug object
+$.leak = 5;
+$.leak; // 5
+```
+
+It also works in ExtendScript, although `Object.keys(this)` does not.
+
+### Exploit 3: Environment Variables (ExtendScript)
 
 Later I discovered the ExtendScript expression engine has the ability to [set environment variables](https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object.html#setenv).<br>
 ```javascript
@@ -81,49 +105,17 @@ $.setenv(key, value)
 
 However it only allows strings to be stored.
 
+```javascript
+$.setenv("leak", 5);
+$.getenv("leak"); // "5"
+```
+
 ### Summary
 
 There are 3 options for storing global variables:
 
-|Exploit|Expression engine|Capable of storing|
-|:---|:---|:---|:---|:---|
-|Variable leaking|JavaScript|Strings, excluding special characters|
-|The debug object|Both|All types of data|
-|Environment variables|ExtendScript|Strings|
-
-#### 1. Variable leaking
-
-```javascript
-// Set value
-var str = "hello_this_is_global";
-eval(`var ${str}`);
-```
-
-```javascript
-// Get value
-Object.keys(this).pop();
-```
-
-#### 2. The debug object
-
-```javascript
-// Set value
-$.str = "hello_this_is_global";
-```
-
-```javascript
-// Get value
-$.str;
-```
-
-#### 3. Environment variables
-
-```javascript
-// Set value
-$.setenv("str", "hello_this_is_global");
-```
-
-```javascript
-// Get value
-$.getenv("str");
-```
+|Exploit|Expression engine|Capable of storing|Get|Set|
+|:---|:---|:---|:--|:--|
+|Variable leaking|JavaScript|Strings (excluding special characters)|`Object.keys(this)`|```eval(`var ${x}`)```|
+|The debug object|Both|Anything|`$.key`|`$.key = value`|
+|Environment variables|ExtendScript|Strings|`$.getenv(key)`|`$.setenv(key, value)`|
