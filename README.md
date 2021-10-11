@@ -118,7 +118,7 @@ delete leak_5_hi;
 
 ### 2. The Debug Object (JavaScript + ExtendScript)
 
-[@stibinator](https://github.com/stibinator) informed me of the debug object `$`.
+[@stibinator](https://github.com/stibinator) [informed me](https://blob.pureandapplied.com.au/the-global-object-in-after-effects/) of the [debug object `$`](https://helpx.adobe.com/cy_en/after-effects/using/legacy-and-extend-script-engine.html#dollar-object).
 
 `$` is shared between all expressions, and remains in memory until After Effects is restarted.
 
@@ -128,6 +128,13 @@ $.leak = 5;
 
 // Read number
 $.leak; // 5
+```
+
+[`Object.keys`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys) works on `$`:
+
+```javascript
+// Read all keys
+Object.keys($); // [{ leak: 5 }]
 ```
 
 `$` allows any type of data to be stored:
