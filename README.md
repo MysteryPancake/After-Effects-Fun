@@ -56,7 +56,7 @@ I discovered variable names aren't properly deleted by After Effects:
 var leak = 5;
 
 // Read all variable names
-Object.keys(this); // ["leak"]
+Object.keys(this); // ["leak"] (among others)
 ```
 
 Variable names are shared between all expressions, and remain in memory until After Effects is restarted.
@@ -86,7 +86,7 @@ eval(`var leak_${data}`);
 
 ```javascript
 // Read all variable names
-Object.keys(this); // ["leak", "leak_5", "hello", "leak_hello"]
+Object.keys(this); // ["leak", "leak_5", "hello", "leak_hello"] (among others)
 ```
 
 Using this concept, you can store multiple types of data in one variable name:
@@ -134,7 +134,7 @@ $.leak; // 5
 
 ```javascript
 // Read all keys
-Object.keys($); // [{ leak: 5 }]
+Object.keys($); // [{ leak: 5 }] (among others)
 ```
 
 `$` allows any type of data to be stored:
