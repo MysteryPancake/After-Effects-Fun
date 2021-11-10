@@ -14,6 +14,10 @@ These were made using [custom exploits](#break)!
 
 ## Expressions
 
+[Limitless linear](expressions/linear.js)
+
+[<img src="images/LinearDemo.gif?raw=true" width="320" alt="Limitless linear demo">](expressions/linear.js)
+
 [Custom easings](expressions/easing2.js)
 
 [<img src="images/EasingDemo.gif?raw=true" width="320" alt="Easings reference">](https://youtu.be/6qnkLmMJ2AE)
@@ -22,10 +26,6 @@ These were made using [custom exploits](#break)!
 [Spring easing](expressions/easing4.js)
 
 [<img src="images/SpringDemo.gif?raw=true" width="320" alt="Spring easing demo">](expressions/easing4.js)
-
-[Limitless linear](expressions/linear.js)
-
-[<img src="images/LinearDemo.gif?raw=true" width="320" alt="Limitless linear demo">](expressions/linear.js)
 
 [Path rotation](expressions/pathrotation.js)
 
@@ -46,7 +46,7 @@ These were made using [custom exploits](#break)!
 
 To have fun in After Effects, I often need to store data in memory and share it between expressions.
 
-Many consider this impossible, but I found several ways to do it:
+Some consider this impossible, but I found several ways to do it:
 
 ### 1. Variable Leaking (JavaScript only)
 
