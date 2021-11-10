@@ -6,7 +6,7 @@ function limitlessLinear(t, tMin, tMax, value1, value2) { // Combination of lerp
 	return (1 - normal) * value1 + normal * value2; // Weighted sum (e.g. 25% of value 1, 75% of value 2)
 }
 
-function limitlessLinear2(t, tMin, tMax, value1, value2) { // UPDATE: Alternative from rwaldron.github.io/proposal-math-extensions
+function limitlessLinear2(t, tMin, tMax, value1, value2) { // UPDATE: Alternative from rwaldron.github.io/proposal-math-extensions/#sec-math.scale
 	return (t - tMin) * (value2 - value1) / (tMax - tMin) + value1;
 }
 
