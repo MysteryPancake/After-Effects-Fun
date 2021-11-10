@@ -167,7 +167,7 @@ $[key] = 123;
 $[key]; // 123
 ```
 
-`$` also works in ExtendScript, though `Object.keys(this)` doesn't.
+`$` also works in ExtendScript, though `Object.keys` doesn't.
 
 ### 3. Environment Variables (ExtendScript only)
 
