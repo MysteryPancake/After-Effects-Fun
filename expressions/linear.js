@@ -6,7 +6,7 @@ function limitlessLinear(t, tMin, tMax, value1, value2) { // Combination of lerp
 	return (1 - normal) * value1 + normal * value2; // Weighted sum (e.g. 25% of value 1, 75% of value 2)
 }
 
-function limitedLinear(t, tMin, tMax, value1, value2) { // Default AE linear
+function limitedLinear(t, tMin, tMax, value1, value2) { // UPDATE: Not equivalent to AE linear! twitter.com/broadcastGEMs/status/1458088326896947209
 	t = Math.max(tMin, Math.min(t, tMax)); // Clamp t between tMin and tMax
 	var normal = (t - tMin) / (tMax - tMin); // Normalize t to a number between 0 and 1 (cannot exceed)
 	return (1 - normal) * value1 + normal * value2; // Weighted sum (e.g. 25% of value 1, 75% of value 2)
