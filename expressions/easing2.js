@@ -143,9 +143,8 @@ var EasingFunctions = {
 };
 
 function customEasing(name, t, tMin, tMax, value1, value2, s) {
-	var limitedT = Math.max(tMin, Math.min(t, tMax));
-	var normal = (limitedT - tMin) / (tMax - tMin);
-	var eased = EasingFunctions[name](normal, s);
+	t = Math.max(tMin, Math.min(t, tMax));
+	var eased = EasingFunctions[name]((t - tMin) / (tMax - tMin), s);
 	return (1 - eased) * value1 + eased * value2;
 }
 
