@@ -1,3 +1,5 @@
+// Use this expression to make a layer cycle around a path over time
+
 offset = 0.2; // Between 0 and 1
 cyclesPerSecond = 1; // 1 cycle every second
 
