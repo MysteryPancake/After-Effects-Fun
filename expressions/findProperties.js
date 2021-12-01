@@ -1,5 +1,6 @@
 // Good script for finding secret properties in After Effects
 // From https://helpx.adobe.com/au/after-effects/using/legacy-and-extend-script-engine.html
+
 let obj = thisProperty; // Replace "thisProperty" with a property-link to your desired property
 let props = [];
 do {
