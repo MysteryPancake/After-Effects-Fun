@@ -1,6 +1,5 @@
-// This expression loops path keyframes in and out
+// This expression loops path keyframes in and out, messy version of loopInOut.js
 // Adapted from Zack's on the /r/AfterEffects Discord
-// Messy version of loopinout.js
 
 if (numKeys >= 2) {
 	
