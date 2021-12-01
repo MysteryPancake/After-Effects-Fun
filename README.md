@@ -1,6 +1,8 @@
 # After Effects Fun
 Expressions, scripts and projects for Adobe After Effects.
 
+Either made by me or others on the [/r/AfterEffects Discord](http://discord.gg/aftereffects).
+
 ## Projects
 These were made using [custom exploits](#break)!
 
@@ -27,11 +29,11 @@ These were made using [custom exploits](#break)!
 
 [<img src="images/SpringDemo.gif?raw=true" width="320" alt="Spring easing demo">](expressions/easing4.js)
 
-[Path rotation](expressions/pathrotation.js)
+[Path rotation](expressions/pathRotation.js)
 
 [![Path rotation demo](https://img.youtube.com/vi/_G5AHLrX-jU/mqdefault.jpg)](https://youtu.be/_G5AHLrX-jU)
 
-[Camera snapping](expressions/camerasnap.js)
+[Camera snapping](expressions/cameraSnap.js)
 
 [![Camera snapping demo](https://img.youtube.com/vi/VJOOgkROCwU/mqdefault.jpg)](https://youtu.be/VJOOgkROCwU)
 
