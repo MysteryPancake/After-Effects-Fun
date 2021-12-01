@@ -1,4 +1,5 @@
-// This moves in a random straight-line direction
+// Moves in a random straight-line direction
+// Uses the $ object to store global variables as described on README.md
 
 // 5% chance of changing direction
 if (!$.direction || Math.random() > 0.95) {
