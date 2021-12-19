@@ -33,6 +33,10 @@ These were made using [custom exploits](#break)!
 
 [![Path rotation demo](https://img.youtube.com/vi/_G5AHLrX-jU/mqdefault.jpg)](https://youtu.be/_G5AHLrX-jU)
 
+[Spiral path](expressions/spiralPath.js)
+
+[<img src="images/SpiralDemo.gif?raw=true" width="320" alt="Spiral path demo">](expressions/spiralPath.js)
+
 [Camera snapping](expressions/cameraSnap.js)
 
 [![Camera snapping demo](https://img.youtube.com/vi/VJOOgkROCwU/mqdefault.jpg)](https://youtu.be/VJOOgkROCwU)
