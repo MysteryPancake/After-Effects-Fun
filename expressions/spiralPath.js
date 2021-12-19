@@ -15,8 +15,8 @@ const r = spiralWidth * 0.5;
 for (let i = 0; i < points; i++) {
     angle += step;
     const radius = Math.pow(i / points, scaleFactor) * r;
-    const x = Math.cos(angle) * radius;
-    const y = Math.sin(angle) * radius;
+    const x = Math.cos(angle) * radius; // Math.sin for clockwise
+    const y = Math.sin(angle) * radius; // Math.cos for clockwise
     vertices[i] = [x, y];
 }
 
