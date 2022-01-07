@@ -1,5 +1,5 @@
 // I made this based on arithmetic sequence formulas (see github.com/MysteryPancake/Fun/blob/master/html/arithmetic.html)
-// Turns out this combines lerp and inverse lerp (I didn't know either at the time)
+// Turns out this combines lerp and inverse lerp (didn't know at the time)
 
 function limitlessLinear(t, tMin, tMax, value1, value2) { // Combination of lerp and inverse lerp
 	var normal = (t - tMin) / (tMax - tMin); // Normalize t to a number between 0 and 1 (can exceed)
