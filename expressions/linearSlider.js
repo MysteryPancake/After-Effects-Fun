@@ -9,7 +9,7 @@ if (slider.numKeys > 0) {
 	if (slider.key(n).time > time) n--;
 }
 if (n > 0 && n < slider.numKeys) {
-    linear(time, slider.key(n).time, slider.key(n + 1).time, slider.key(n).value, slider.key(n + 1).value);
+	linear(time, slider.key(n).time, slider.key(n + 1).time, slider.key(n).value, slider.key(n + 1).value);
 } else {
-    slider.value;
+	slider.value;
 }

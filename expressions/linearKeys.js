@@ -7,7 +7,7 @@ if (numKeys > 0) {
 	if (key(n).time > time) n--;
 }
 if (n > 0 && n < numKeys) {
-    linear(time, key(n).time, key(n + 1).time, key(n).value, key(n + 1).value);
+	linear(time, key(n).time, key(n + 1).time, key(n).value, key(n + 1).value);
 } else {
-    value;
+	value;
 }
