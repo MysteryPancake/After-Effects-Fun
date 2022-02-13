@@ -1,5 +1,5 @@
 // Made for <;) on the /r/AfterEffects Discord
-// Biases a wiggle towards 0, making it harder to wiggle away from 0
+// Biases a wiggle towards 0 using a curved function, making it harder to wiggle away from 0
 // Combines X and Y influence, check biasedWiggle2.js for a separated version
 
 var frequency = 50;
