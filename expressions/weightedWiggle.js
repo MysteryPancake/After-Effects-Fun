@@ -9,6 +9,6 @@ var targetPosition = [250, 250]; // This should be within the amplitude range, e
 // If you want to approach a 1 dimensional number uncomment the line below
 // var targetPosition = [effect("Slider Control")("Slider"), effect("Slider Control")("Slider")];
 
-var targetPosition /= amplitude;
+targetPosition /= amplitude;
 var distanceToTarget = length(wigglePosition, targetPosition);
 value + wigglePosition + targetPosition * distanceToTarget;
