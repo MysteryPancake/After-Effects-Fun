@@ -52,7 +52,7 @@ These were made using [custom exploits](#break)!
 
 To have fun in After Effects, I often need to store data in memory and share it between expressions.
 
-Some consider this impossible, but I found several ways to do it:
+Often this is considered impossible, but there are several ways to do it:
 
 ### 1. Variable Leaking (JavaScript only)
 
