@@ -50,6 +50,8 @@ These were made using [custom exploits](#break)!
 <a name="break"></a>
 ## Global Variable Exploits
 
+**WARNING: These are all unpredictable to work with!**
+
 To have fun in After Effects, I often need to store data in memory and share it between expressions.
 
 Often this is considered impossible, but there are several ways to do it:
