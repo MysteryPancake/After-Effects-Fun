@@ -1,7 +1,7 @@
 # After Effects Fun
 Expressions, scripts and projects for Adobe After Effects.
 
-Usually created by me, or by others on the [/r/AfterEffects Discord](http://discord.gg/aftereffects).
+Usually created by myself or others on the [/r/AfterEffects Discord](http://discord.gg/aftereffects).
 
 ## Projects
 These were made using [custom exploits](#break)!
