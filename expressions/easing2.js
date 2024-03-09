@@ -144,7 +144,7 @@ var EasingFunctions = {
 
 function customEasing(name, t, tMin, tMax, value1, value2, s) {
 	t = Math.max(tMin, Math.min(t, tMax)); // Same as t = clamp(t, tMin, tMax);
-	var eased = EasingFunctions[name]((t - tMin) / (tMax - tMin), s); // Inverse lerp
+	var eased = EasingFunctions[name]((t - tMin) / (tMax - tMin), s); // Inverse lerp and apply easing
 	return (1 - eased) * value1 + eased * value2; // Lerp
 }
 
