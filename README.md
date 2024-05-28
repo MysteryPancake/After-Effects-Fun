@@ -126,7 +126,7 @@ delete leak_5_hi;
 
 ### 2. The Debug Object (JavaScript + ExtendScript)
 
-[@stibinator](https://github.com/stibinator) [informed me](https://blob.pureandapplied.com.au/the-global-object-in-after-effects/) of the [debug object `$`](https://helpx.adobe.com/cy_en/after-effects/using/legacy-and-extend-script-engine.html#dollar-object).
+[@stibinator](https://github.com/stibinator) [told me](https://blob.pureandapplied.com.au/the-global-object-in-after-effects/) about the [debug object `$`](https://helpx.adobe.com/cy_en/after-effects/using/legacy-and-extend-script-engine.html#dollar-object).
 
 `$` is shared between all expressions, and remains in memory until After Effects is restarted.
 
@@ -175,7 +175,7 @@ $[key] = 123;
 $[key]; // 123
 ```
 
-`$` also works in ExtendScript, though `Object.keys` doesn't.
+`$` also works in ExtendScript, but `Object.keys` doesn't.
 
 ### 3. Environment Variables (ExtendScript only)
 
