@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Image to Expression</title>
+		<meta name="description" content="Bootleg image converter.">
+		<meta property="og:title" content="Image to Expression">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://mysterypancake.github.io/After-Effects-Fun/tools/imagetoexpression2">
+		<meta property="og:site_name" content="Image to Expression">
+		<meta property="og:description" content="Bootleg image converter.">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<style>
+		* {
+			color: #CCCCCC;
+			font-family: system-ui, Arial, Helvetica, sans-serif;
+		}
+
+		html, body {
+			background-color: #272727;
+		}
+
+		body {
+			margin: 16px;
+		}
+
+		canvas {
+			display: block;
+		}
+
+		textarea {
+			background-color: #1D1D1D;
+			box-sizing: border-box;
+			font-family: "Lucida Console", Monaco, monospace;
+			height: 16em;
+			resize: vertical;
+			width: 100%;
+		}
+
+		#copybutton, #copybutton2 {
+			display: none;
+		}
+
+		input[type="button"] {
+			background-color: black;
+			color: white;
+			font-size: large;
+			padding: 8px 16px;
+		}
+
+		.half {
+			box-sizing: border-box;
+			display: inline-block;
+			float: left;
+			width: 50%;
+		}
+
+		#top {
+			display: inline-block;
+		}
+		</style>
+		<script>
+		let canvas;
+		let textArea;
+		let textArea2;
+		let copyButton;
+		let copyButton2;
+
+		function setup() {
+			canvas = document.getElementById("canvas");
+			textArea = document.getElementById("textarea");
+			textArea2 = document.getElementById("textarea2");
+			copyButton = document.getElementById("copybutton");
+			copyButton2 = document.getElementById("copybutton2");
+		}
+
+		function imageToExpression(elem) {
+			if (elem.files && elem.files[0]) {
+				createImageBitmap(elem.files[0], { premultiplyAlpha: "none", colorSpaceConversion: "none" }).then(function(image) {
+					canvas.width = image.width;
+					canvas.height = image.height;
+					const context = canvas.getContext("2d", { willReadFrequently: true });
+					context.drawImage(image, 0, 0);
+					const data = context.getImageData(0, 0, image.width, image.height).data;
+					const total = image.width * image.height;
+					textArea.value = `var w = ${image.width};\nvar f = timeToFrames(time);\nvar x = f % w;\nvar y = Math.floor(f / w);\n[x+1, y+1];`;
+					const lookup = new Map();
+					const palette = [];
+					const runEnds = [];
+					const runColors = [];
+					let prev = -1;
+					for (let p = 0; p < total; p++) {
+						const i = p * 4;
+						const key = ((data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8) | data[i + 3]) >>> 0;
+						let idx = lookup.get(key);
+						if (idx === undefined) {
+							idx = lookup.size;
+							lookup.set(key, idx);
+							palette.push(data[i], data[i + 1], data[i + 2], data[i + 3]);
+						}
+						if (idx === prev) {
+							runEnds[runEnds.length - 1] = p + 1;
+						} else {
+							runColors.push(idx);
+							runEnds.push(p + 1);
+							prev = idx;
+						}
+					}
+					textArea2.value = `var pal = [${palette}];\nvar cols = [${runColors}];\nvar ends = [${runEnds}];\nvar f = timeToFrames(time);\nvar n = ends.length - 1;\nif (f >= ends[n]) {\n\tvalue;\n} else {\n\tvar lo = 0, hi = n;\n\twhile (lo < hi) {\n\t\tvar m = (lo + hi) >> 1;\n\t\tif (ends[m] <= f) lo = m + 1; else hi = m;\n\t}\n\tvar c = cols[lo] * 4;\n\t[pal[c] / 255, pal[c + 1] / 255, pal[c + 2] / 255, pal[c + 3] / 255];\n}`;
+					textArea2.select();
+					copyButton.value = "Copy";
+					copyButton.style.display = "block";
+					copyButton2.value = "Copy";
+					copyButton2.style.display = "block";
+					image.close();
+				});
+			}
+		}
+
+		function copyText() {
+			textArea.select();
+			document.execCommand("copy");
+			copyButton.value = "Copied";
+		}
+
+		function copyText2() {
+			textArea2.select();
+			document.execCommand("copy");
+			copyButton2.value = "Copied";
+		}
+		</script>
+	</head>
+	<body onload="setup();">
+		<h1>Image to expression converter</h1>
+		<p>This generates expressions to draw your image pixel by pixel using the "Write-On" effect. This is extremely slow for large images.</p>
+		<div id="top">
+			<input type="file" accept="image/*" onchange="imageToExpression(this);">
+			<canvas id="canvas" width="0" height="0"></canvas>
+		</div>
+		<div>
+			<div class="half">
+				<h2>Brush Position</h2>
+				<textarea id="textarea" readonly></textarea>
+				<input id="copybutton" type="button" value="Copy" onclick="copyText();">
+			</div>
+			<div class="half">
+				<h2>Brush Color</h2>
+				<textarea id="textarea2" readonly></textarea>
+				<input id="copybutton2" type="button" value="Copy" onclick="copyText2();">
+			</div>
+		</div>
+	</body>
+</html>
