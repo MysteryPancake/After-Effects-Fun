@@ -47,6 +47,10 @@ These were made using [custom exploits](#break)!
 [![Expression converter](https://img.youtube.com/vi/sEwBKQni7kU/mqdefault.jpg)](https://youtu.be/sEwBKQni7kU)
 [![Expression demo](https://img.youtube.com/vi/OfXQXMyMp-U/mqdefault.jpg)](https://youtu.be/OfXQXMyMp-U)
 
+[Dave drawing demo](projects/DAVE)
+
+[<img src="images/DaveDemo.gif?raw=true" width="320" alt="Dave demo">](projects/DAVE/dave.js)
+
 <a name="break"></a>
 ## Global Variable Exploits
 
