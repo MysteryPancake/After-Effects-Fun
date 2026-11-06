@@ -5,8 +5,9 @@
 var STEP = 1000 / 60;
 var SPAWN_X = 40, SPAWN_Y = 208;     // feet on top of the ground (row 11 -> y = 32 + 11*16)
 var MIDWAY_COL = 96;                 // tile column of the midway checkpoint: crossing it makes deaths respawn here
+var RESPAWN_SAFE = 96;               // goombas within this many px ahead of the respawn point are removed, so you never respawn on top of one
 var SCREEN_MID = 112, LEFT_PAD = 8;  // try SCREEN_MID = 160 for a more centered feel on a 427 px screen
-var VERSION = 21;                     // bump after editing physics or the level
+var VERSION = 25;                     // bump after editing physics or the level
 
 var TILE = 16, TOP = 32, ROWS = 13;
 var W = 224;                         // 3584 px BG / 16 = 224 tiles
@@ -30,6 +31,25 @@ var ANIM_DIST = 10;                  // px Mario travels per walk-cycle frame (f
 var POPUP_POOL = 3;                  // text layers "Popup 1" ... "Popup 3"; if all are busy the oldest popup is recycled
 var POPUP_TIME = 45;                 // steps a popup lives (45 = 0.75 s)
 var POPUP_RISE = 40;                 // px a popup floats upward over its life
+// ---------- ENDING (flagpole -> slide -> castle walk -> time bonus -> restart) ----------
+var POLE_COL = 198;                  // tile column of the F tiles (must match buildLevel)
+var POLE_X = POLE_COL * TILE + TILE / 2;   // x of the pole itself
+var POLE_BASE = TOP + 10 * TILE;     // y of the top of the base block = where Mario's feet end up
+var GRAB_REACH = 8;                  // Mario grabs when his right edge is this close to the pole (8 = left edge of the tile, so touching the base block counts too)
+var SLIDE_OFF = 7;                   // px Mario's centre sits left (sliding) / right (waiting) of the pole
+var FLAG_SLIDE = 2;                  // px per step Mario and the flag slide down
+var FLAG_SCORES = [100, 400, 800, 2000, 5000];   // grab height score, lowest to highest
+var FLAG_ZONES = [16, 48, 80, 112];  // px above the base block where each next score starts (pole is 128 px tall)
+var FLAG_X = POLE_X - 8;             // centre of the 16x16 flag layer (it sits just left of the pole)
+var FLAG_Y0 = TOP + 2 * TILE + 8;    // flag centre y when raised  (match this to where the flag sits in your BG art)
+var FLAG_Y1 = POLE_BASE - 8;         // flag centre y when lowered
+var END_PAUSE = 20;                  // steps Mario waits on the far side of the pole before walking
+var END_WALK = 1.5;                  // px per step walking to the castle
+var CASTLE_X = 204 * TILE + TILE / 2;   // x of the castle door: Mario vanishes here (move to match your art)
+var CASTLE_WAIT = 30;                // steps before the time bonus starts counting
+var TIME_BONUS = 50, BONUS_RATE = 2; // points per leftover time unit, units converted per step
+var END_HOLD = 90;                   // steps to hold after the bonus, then cut to black (like a death) and restart
+var MAX_CAM = Math.max(0, W * TILE - thisComp.width);   // camera never scrolls past the end of the BG
 var BUMP = 8;                        // block bump animation length in physics steps (about 0.13 s)
 
 var GHW = 6, GH = 16;                // goomba half-width / height (hitbox only; sprite layers all use anchor [8, 8])
@@ -108,15 +128,15 @@ function buildLevel() {
 
 // ---------- ENTITIES (blocks + goombas) ----------
 // One class for everything that gets a sprite. Position is always the bottom-centre of the 16x16 sprite.
-//   kind  BLOCK or GOOMBA
+//   kind  BLOCK, GOOMBA or FLAG (the flagpole flag: y is the flag's bottom, it slides down during the ending)
 //   state BLOCK: unused. GOOMBA: 0 = waiting offscreen, 1 = walking, 2 = squished, 3 = gone,
 //         4 = knocked off a block (flips and falls)
 //   t     BLOCK: bump timer.  GOOMBA: squish timer
 //   off   upward bump offset in px (blocks only, 0 otherwise)
 //   frame / flip   what the sprite layer should show, filled in by refresh()
-var BLOCK = 0, GOOMBA = 1;
+var BLOCK = 0, GOOMBA = 1, FLAG = 2;
 // frames of the single sprite precomp (comp frame numbers, 0-based)
-var F_BRICK = 0, F_QUESTION = 1, F_USED = 2, F_GOOMBA = 3 /* 3 and 4 = walk cycle */, F_SQUISH = 5;
+var F_BRICK = 0, F_QUESTION = 1, F_USED = 2, F_GOOMBA = 3 /* 3 and 4 = walk cycle */, F_SQUISH = 5, F_FLAG = 6;
 
 function Entity(kind, x, y) {
 	this.kind = kind;
@@ -135,6 +155,10 @@ Entity.makeBlock = function (c, r, type) {
 	return e;
 };
 
+Entity.makeFlag = function () {
+	return new Entity(FLAG, FLAG_X, FLAG_Y0 + 8);
+};
+
 Entity.makeGoomba = function (col) {
 	var e = new Entity(GOOMBA, col * TILE + TILE / 2, GOOMBA_Y);
 	e.vx = -GOOMBA_SPEED; e.state = 0;
@@ -143,13 +167,16 @@ Entity.makeGoomba = function (col) {
 
 // is this entity drawn at all right now?
 Entity.prototype.shown = function () {
+	if (this.kind === FLAG) return true;
 	if (this.kind === BLOCK) return this.revealed && !this.gone;
 	return this.state === 1 || this.state === 2 || this.state === 4;
 };
 
 // pick the sprite frame and flip for the layer that is showing this entity
 Entity.prototype.refresh = function () {
-	if (this.kind === BLOCK) {
+	if (this.kind === FLAG) {
+		this.frame = F_FLAG; this.flip = false;
+	} else if (this.kind === BLOCK) {
 		this.frame = this.used ? F_USED : (this.type === "?" ? F_QUESTION : F_BRICK);
 		this.flip = false;
 	} else {
@@ -160,7 +187,7 @@ Entity.prototype.refresh = function () {
 
 // advance one physics step
 Entity.prototype.tick = function (m) {
-	if (this.kind === BLOCK) this.tickBlock(); else this.tickGoomba(m);
+	if (this.kind === BLOCK) this.tickBlock(); else if (this.kind === GOOMBA) this.tickGoomba(m);
 };
 
 // bump animation
@@ -241,7 +268,8 @@ function loadWorld() {
 	for (c = 0; c < GOOMBA_COLS.length; c++) goombas.push(Entity.makeGoomba(GOOMBA_COLS[c]));
 	$.blocks = { list: blocks, idx: idx };
 	$.goombas = goombas;
-	$.entities = blocks.concat(goombas);
+	$.flag = Entity.makeFlag();
+	$.entities = blocks.concat(goombas, [$.flag]);
 	$.popups = [];                                   // fixed slots, slot N-1 is shown by text layer "Popup N"
 	for (var p = 0; p < POPUP_POOL; p++) $.popups.push({ x: 0, y: 0, t: 0, str: "" });
 }
@@ -322,6 +350,7 @@ Mario.prototype.reset = function () {
 	this.time = START_TIME; this.tick = 0; this.low = false;
 	this.frame = 0; this.animT = 0;
 	this.dying = false; this.deathT = 0;
+	this.end = 0; this.endT = 0; this.hidden = false;   // ending state
 };
 
 // pick the sprite frame: 0 idle, 1-3 walk cycle, 4 skid, 5 jump
@@ -384,8 +413,84 @@ Mario.prototype.die = function () {
 	loadWorld();                                     // restore used / broken blocks and respawn goombas
 	this.reset();
 	for (var i = 0; i < $.goombas.length; i++)       // goombas behind the respawn point are already gone
-		if ($.goombas[i].x < this.camX) $.goombas[i].state = 3;
+		if ($.goombas[i].x < this.x + RESPAWN_SAFE) $.goombas[i].state = 3;   // behind the camera, or too close to the respawn point
 	this.title = 2; this.titleT = TITLE_TIME;        // black screen for a moment, then play resumes
+};
+
+// camera follows forward only and stops at the end of the level; Mario can't leave the level either
+Mario.prototype.follow = function () {
+	this.camX = Math.min(Math.max(this.camX, this.x - SCREEN_MID), MAX_CAM);
+	if (this.x < this.camX + LEFT_PAD) {
+		this.x = this.camX + LEFT_PAD;
+		this.vx = Math.max(this.vx, 0);
+	}
+	if (this.x > W * TILE - HW) {
+		this.x = W * TILE - HW;
+		this.vx = Math.min(this.vx, 0);
+	}
+};
+
+// Mario touched the flagpole: score by grab height, clear the goombas, start the slide
+Mario.prototype.startEnd = function () {
+	var h = Math.max(0, POLE_BASE - this.y), idx = 0, i;
+	for (i = 0; i < FLAG_ZONES.length; i++) if (h >= FLAG_ZONES[i]) idx++;
+	this.end = 1; this.endT = 0;
+	this.x = POLE_X - SLIDE_OFF;
+	this.y = Math.min(this.y, POLE_BASE);
+	this.vx = 0; this.vy = 0; this.facing = 1; this.frame = 7;
+	this.onGround = false; this.jumpBuf = 0; this.jumpHold = 0;
+	this.low = false;
+	for (i = 0; i < $.goombas.length; i++) $.goombas[i].state = 3;   // enemies vanish
+	this.addScore(FLAG_SCORES[idx], POLE_X + 14, this.y - HEIGHT);
+};
+
+// one step of the ending. 1 slide, 2 wait on far side, 3 walk to castle, 4 inside, 5 time bonus, 6 hold, then restart
+Mario.prototype.endStep = function () {
+	var s = this.end;
+	this.endT++;
+	if (s === 1) {
+		var moving = false;
+		if (this.y < POLE_BASE) { this.y = Math.min(this.y + FLAG_SLIDE, POLE_BASE); moving = true; }
+		var f = $.flag, fBottom = FLAG_Y1 + 8;
+		if (f.y < fBottom) f.y = Math.min(f.y + FLAG_SLIDE, fBottom);
+		this.frame = moving ? 7 + Math.floor(this.endT / 4) % 2 : 7;
+		if (!moving && f.y >= fBottom) { this.end = 2; this.endT = 0; }
+	} else if (s === 2) {
+		this.frame = 8;
+		if (this.endT === 1) { this.x = POLE_X + SLIDE_OFF; this.facing = -1; }   // hop to the other side
+		if (this.endT >= END_PAUSE) { this.end = 3; this.endT = 0; this.facing = 1; }
+	} else if (s === 3) {
+		this.x += END_WALK;
+		this.vx = END_WALK;
+		this.y += this.vy;                                   // gravity: drops off the base block, lands on the ground
+		this.vy = Math.min(this.vy + 0.4375, 4);
+		this.onGround = false;
+		if (this.vy >= 0 && (solid(this.x - HW + 1, this.y) || solid(this.x + HW - 1, this.y))) {
+			this.y = TOP + Math.floor((this.y - TOP) / TILE) * TILE;
+			this.vy = 0; this.onGround = true;
+		}
+		this.animate(1);
+		if (this.x >= CASTLE_X) { this.hidden = true; this.vx = 0; this.end = 4; this.endT = 0; }
+	} else if (s === 4) {
+		if (this.endT >= CASTLE_WAIT) { this.end = 5; this.endT = 0; }
+	} else if (s === 5) {
+		var n = Math.min(this.time, BONUS_RATE);
+		this.time -= n;
+		this.score += n * TIME_BONUS;
+		if (this.time <= 0) { this.end = 6; this.endT = 0; }
+	} else if (s === 6) {
+		if (this.endT >= END_HOLD) { this.win(); return; }
+	}
+	this.follow();
+};
+
+// level beaten: brand-new game, after the same timed black screen a death gets
+Mario.prototype.win = function () {
+	this.score = 0; this.coins = 0; this.lives = START_LIVES;
+	this.checkpoint = false;
+	loadWorld();
+	this.reset();
+	this.title = 2; this.titleT = TITLE_TIME;
 };
 
 // stomp from above = squish + bounce; any other contact = die. returns true if Mario died
@@ -547,19 +652,16 @@ Mario.prototype.step = function (dir, run, jump) {
 	if (this.touchGoombas()) return;                                   // stomped or killed by a goomba
 
 	if (this.x >= MIDWAY_COL * TILE) this.checkpoint = true;           // passed the midway point
+	if (this.x + HW >= POLE_X - GRAB_REACH) { this.startEnd(); this.follow(); return; }   // touched the flagpole
 
-	// --- camera: forward only, no right-edge clamp ---
-	this.camX = Math.max(this.camX, this.x - SCREEN_MID);
-	if (this.x < this.camX + LEFT_PAD) {
-		this.x = this.camX + LEFT_PAD;
-		this.vx = Math.max(this.vx, 0);
-	}
+	// --- camera: forward only, stops at the end of the level ---
+	this.follow();
 
 	this.animate(dir);
 };
 
 // ---------- INIT ----------
-if ($.mario === undefined || $.mario.ver !== VERSION || $.level === undefined || $.entities === undefined || $.popups === undefined) {
+if ($.mario === undefined || $.mario.ver !== VERSION || $.level === undefined || $.entities === undefined || $.popups === undefined || $.flag === undefined) {
 	loadWorld();
 	$.mario = new Mario();
 }
@@ -590,13 +692,13 @@ if (m.title === 1 && (Math.abs(dx) > START_MOVE || Math.abs(dy) > START_MOVE)) {
 
 // flick up = jump: a fast upward move of the joystick within one evaluation (only while actually playing)
 if (m.prevDy === undefined) m.prevDy = dy;
-if (m.title === 0 && !m.dying && dy - m.prevDy <= -FLICK_DELTA) {
+if (m.title === 0 && !m.dying && m.end === 0 && dy - m.prevDy <= -FLICK_DELTA) {
 	m.jumpBuf = JUMP_BUFFER;
 	m.jumpHold = FLICK_HOLD;
 	m.cut = false;                                   // a fresh jump
 }
 // flick down = let go of the jump: heavier gravity for the rest of this airtime, so the hop is cut short
-if (m.title === 0 && !m.dying && dy - m.prevDy >= FLICK_DELTA) {
+if (m.title === 0 && !m.dying && m.end === 0 && dy - m.prevDy >= FLICK_DELTA) {
 	m.cut = true;
 	m.jumpHold = 0;
 }
@@ -611,6 +713,10 @@ while (m.acc >= STEP && steps < 3) {     // hard limit per evaluation
 	if (m.title === 0) {                 // game is frozen while the screen shows
 		if (m.dying) {
 			m.deathStep();               // only Mario moves during the death animation
+		} else if (m.end > 0) {
+			m.endStep();                 // flagpole / castle / time bonus: scripted, joystick ignored
+			tickEntities(m);
+			tickPopups();
 		} else {
 			if (m.jumpHold > 0) m.jumpHold--;
 			if (m.onGround) m.cut = false;               // cut only lasts for one airtime
@@ -639,7 +745,7 @@ value;
 // MARIO
 $.mario ? [$.mario.x - $.mario.camX, $.mario.y] : value;
 
-// MARIO TIME REMAP (0 idle, 1-3 walk, 4 skid, 5 jump, 6 death)
+// MARIO TIME REMAP (0 idle, 1-3 walk, 4 skid, 5 jump, 6 death, 7-8 flagpole climb)
 $.mario ? framesToTime($.mario.frame) : 0;
 
 // MARIO SCALE (flips horizontally with facing)
@@ -668,8 +774,8 @@ var BASE_X = 1792, BASE_Y = 120;
 $.mario ? [BASE_X - $.mario.camX, BASE_Y] : value;
 
 // ENTITY LAYERS: 26 duplicates (ENTITY_POOL) of ONE 16x16 precomp named "Entity 1" ... "Entity 26", anchor [8, 8]
-// precomp frames: 0 brick, 1 ? block, 2 used block, 3-4 goomba walk cycle, 5 goomba squished (the F_ constants)
-// (Entity N shows entry N-1 of $.visEntities, whatever block or goomba is on screen; paste each expression onto every entity layer)
+// precomp frames: 0 brick, 1 ? block, 2 used block, 3-4 goomba walk cycle, 5 goomba squished, 6 flagpole flag (the F_ constants)
+// (Entity N shows entry N-1 of $.visEntities, whatever block, goomba or the flag is on screen; paste each expression onto every entity layer)
 
 // ENTITY POSITION (centre of the sprite; bump offset lifts blocks)
 var m = $.mario;
@@ -708,3 +814,9 @@ var p = $.popups ? $.popups[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : nu
 // POPUP OPACITY
 var p = $.popups ? $.popups[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
 (p && p.t > 0) ? 100 : 0;
+
+// ---------- ENDING LAYERS ----------
+// (the flag is an ordinary entity now: it uses the "Entity N" layers above, no separate Flag layer or expression needed)
+
+// MARIO OPACITY (new expression on the Mario layer: he disappears into the castle door)
+($.mario && $.mario.hidden) ? 0 : 100;
