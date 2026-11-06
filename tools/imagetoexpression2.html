@@ -83,14 +83,31 @@
 					context.drawImage(image, 0, 0);
 					const data = context.getImageData(0, 0, image.width, image.height).data;
 					const total = image.width * image.height;
-					textArea.value = `var w = ${image.width};\nvar f = timeToFrames(time);\nvar x = f % w;\nvar y = Math.floor(f / w);\n[x+1, y+1];`;
+
 					const lookup = new Map();
 					const palette = [];
-					const runEnds = [];
+					const runEnds = [];    // color runs: cumulative opaque-pixel count
 					const runColors = [];
+					const posStarts = [];  // position runs: first real pixel index of each run
+					const posEnds = [];    // position runs: cumulative opaque-pixel count
 					let prev = -1;
+					let lastOpaque = -2;
+					let count = 0;         // number of opaque pixels so far (= frames needed)
+
 					for (let p = 0; p < total; p++) {
 						const i = p * 4;
+						if (data[i + 3] === 0) continue; // skip fully transparent pixels
+
+						// position runs (consecutive opaque pixels in the image)
+						if (p === lastOpaque + 1) {
+							posEnds[posEnds.length - 1] = count + 1;
+						} else {
+							posStarts.push(p);
+							posEnds.push(count + 1);
+						}
+						lastOpaque = p;
+
+						// color runs (consecutive opaque pixels with the same color)
 						const key = ((data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8) | data[i + 3]) >>> 0;
 						let idx = lookup.get(key);
 						if (idx === undefined) {
@@ -99,14 +116,26 @@
 							palette.push(data[i], data[i + 1], data[i + 2], data[i + 3]);
 						}
 						if (idx === prev) {
-							runEnds[runEnds.length - 1] = p + 1;
+							runEnds[runEnds.length - 1] = count + 1;
 						} else {
 							runColors.push(idx);
-							runEnds.push(p + 1);
+							runEnds.push(count + 1);
 							prev = idx;
 						}
+						count++;
 					}
+
+					if (count === 0) {
+						textArea.value = "// Image has no opaque pixels";
+						textArea2.value = "// Image has no opaque pixels";
+						image.close();
+						return;
+					}
+
+					textArea.value = `// Write-On duration: ${count} frames (opaque pixels only)\nvar w = ${image.width};\nvar st = [${posStarts}];\nvar en = [${posEnds}];\nvar f = Math.min(timeToFrames(time), en[en.length - 1] - 1);\nvar lo = 0, hi = en.length - 1;\nwhile (lo < hi) {\n\tvar m = (lo + hi) >> 1;\n\tif (en[m] <= f) lo = m + 1; else hi = m;\n}\nvar p = st[lo] + f - (lo > 0 ? en[lo - 1] : 0);\n[p % w + 1, Math.floor(p / w) + 1];`;
+
 					textArea2.value = `var pal = [${palette}];\nvar cols = [${runColors}];\nvar ends = [${runEnds}];\nvar f = timeToFrames(time);\nvar n = ends.length - 1;\nif (f >= ends[n]) {\n\tvalue;\n} else {\n\tvar lo = 0, hi = n;\n\twhile (lo < hi) {\n\t\tvar m = (lo + hi) >> 1;\n\t\tif (ends[m] <= f) lo = m + 1; else hi = m;\n\t}\n\tvar c = cols[lo] * 4;\n\t[pal[c] / 255, pal[c + 1] / 255, pal[c + 2] / 255, pal[c + 3] / 255];\n}`;
+
 					textArea2.select();
 					copyButton.value = "Copy";
 					copyButton.style.display = "block";
