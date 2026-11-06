@@ -1,11 +1,12 @@
-// This is 100% vibe coded AI slop
-// The original version I made myself
+// This is vibe coded AI slop using the $ debug object method.
+// The original version I made myself :)
 
 // JOYSTICK
 var STEP = 1000 / 60;
 var SPAWN_X = 40, SPAWN_Y = 208;     // feet on top of the ground (row 11 -> y = 32 + 11*16)
+var MIDWAY_COL = 96;                 // tile column of the midway checkpoint: crossing it makes deaths respawn here
 var SCREEN_MID = 112, LEFT_PAD = 8;  // try SCREEN_MID = 160 for a more centered feel on a 427 px screen
-var VERSION = 12;                     // bump after editing physics or the level
+var VERSION = 21;                     // bump after editing physics or the level
 
 var TILE = 16, TOP = 32, ROWS = 13;
 var W = 224;                         // 3584 px BG / 16 = 224 tiles
@@ -15,18 +16,31 @@ var SOLID = "GB?PSU";                // G ground, B brick, ? question, P pipe, S
 var BREAK_BRICKS = false;            // true: bricks vanish when hit (you'd need to hide the art too)
 
 var START_LIVES = 3, START_TIME = 400;
+var LOW_TIME = 100;                  // the TIME text flashes red once the timer drops below this
 var COIN_SCORE = 200, BRICK_SCORE = 50;
+var DEATH_FREEZE = 30, DEATH_VY = -5, DEATH_G = 0.25;   // death animation: pause (steps), hop speed, gravity
+var FLICK_DELTA = 8;                 // px the joystick must move UP in a single evaluation to count as a flick (lower = easier)
+var FLICK_HOLD = 14;                 // steps a flick counts as "jump held" (full-height hop even if you let go right away)
+var JUMP_BUFFER = 6;                 // steps a flick is remembered, so one just before landing still jumps
+var HOLD_UP = 0.1;                   // keeping the joystick this far above centre (fraction of height) holds the jump for a higher hop
+var HOLD_DOWN = 0.1;                 // joystick this far below centre (fraction of height) = jump released, heavier gravity
 var START_MOVE = 1;                  // px the joystick must leave its centre to dismiss the start screen (the deadzone does not apply)
 var TITLE_TIME = 60;                 // steps the black screen shows after a death (60 = 1 s)
 var ANIM_DIST = 10;                  // px Mario travels per walk-cycle frame (faster = quicker steps)
+var POPUP_POOL = 3;                  // text layers "Popup 1" ... "Popup 3"; if all are busy the oldest popup is recycled
+var POPUP_TIME = 45;                 // steps a popup lives (45 = 0.75 s)
+var POPUP_RISE = 40;                 // px a popup floats upward over its life
 var BUMP = 8;                        // block bump animation length in physics steps (about 0.13 s)
 
-var GHW = 6, GH = 16;                // goomba half-width / height, anchor = bottom-center (16x16 layer, anchor [8, 16])
+var GHW = 6, GH = 16;                // goomba half-width / height (hitbox only; sprite layers all use anchor [8, 8])
 var GOOMBA_SPEED = 0.5;              // px per step, tune to taste
-var GOOMBA_SCORE = 100, SQUISH = 30; // squished goombas stay flat for 30 steps
+var GOOMBA_SCORE = 100, SQUISH = 30;
+var STOMP_SCORES = [100, 200, 400, 500, 800, 1000, 2000, 4000, 5000, 8000];   // chained stomps without touching the ground; past the end = 1-UP
+var KNOCK_VX = 0.5, KNOCK_VY = -3;   // goomba knocked off a bumped block: sideways speed, upward pop // squished goombas stay flat for 30 steps
 var GOOMBA_Y = 208;                  // feet on top of the ground
 var GOOMBA_COLS = [22, 40, 51, 53, 80, 82, 97, 99, 114, 116, 124, 126, 128, 130, 174, 176];   // tile columns (approximate 1-1 layout)
-var ACTIVATE = thisComp.width + 16;  // goombas start walking when this close to the right screen edge
+var ACTIVATE = thisComp.width + 16;
+var ENTITY_POOL = 26;                // sprite layers needed: at most 19 blocks + ~4-6 goombas are ever on screen at once in this level (checked)  // goombas start walking when this close to the right screen edge
 
 // ---------- LEVEL 1-1 ----------
 function buildLevel() {
@@ -92,21 +106,178 @@ function buildLevel() {
 	return lines;
 }
 
-// ---------- BLOCK DATA ----------
-// one entry per B / ? / H tile, ordered left to right, top to bottom within a column.
-// Layer "Block N" in the comp reads entry N-1. Collision still lives in $.level.
-function buildBlocks(level) {
-	var list = [], idx = {};
-	for (var c = 0; c < W; c++) {
-		for (var r = 0; r < ROWS; r++) {
-			var ch = level[r].charAt(c);
+// ---------- ENTITIES (blocks + goombas) ----------
+// One class for everything that gets a sprite. Position is always the bottom-centre of the 16x16 sprite.
+//   kind  BLOCK or GOOMBA
+//   state BLOCK: unused. GOOMBA: 0 = waiting offscreen, 1 = walking, 2 = squished, 3 = gone,
+//         4 = knocked off a block (flips and falls)
+//   t     BLOCK: bump timer.  GOOMBA: squish timer
+//   off   upward bump offset in px (blocks only, 0 otherwise)
+//   frame / flip   what the sprite layer should show, filled in by refresh()
+var BLOCK = 0, GOOMBA = 1;
+// frames of the single sprite precomp (comp frame numbers, 0-based)
+var F_BRICK = 0, F_QUESTION = 1, F_USED = 2, F_GOOMBA = 3 /* 3 and 4 = walk cycle */, F_SQUISH = 5;
+
+function Entity(kind, x, y) {
+	this.kind = kind;
+	this.x = x; this.y = y;
+	this.vx = 0; this.vy = 0;
+	this.state = 1; this.t = 0; this.anim = 0; this.off = 0;
+	this.frame = 0; this.flip = false;
+	// block-only fields
+	this.c = 0; this.r = 0; this.type = ""; this.used = false; this.revealed = true; this.gone = false;
+}
+
+Entity.makeBlock = function (c, r, type) {
+	var e = new Entity(BLOCK, c * TILE + TILE / 2, TOP + (r + 1) * TILE);
+	e.c = c; e.r = r; e.type = type;
+	e.revealed = type !== "H";                       // hidden blocks start invisible
+	return e;
+};
+
+Entity.makeGoomba = function (col) {
+	var e = new Entity(GOOMBA, col * TILE + TILE / 2, GOOMBA_Y);
+	e.vx = -GOOMBA_SPEED; e.state = 0;
+	return e;
+};
+
+// is this entity drawn at all right now?
+Entity.prototype.shown = function () {
+	if (this.kind === BLOCK) return this.revealed && !this.gone;
+	return this.state === 1 || this.state === 2 || this.state === 4;
+};
+
+// pick the sprite frame and flip for the layer that is showing this entity
+Entity.prototype.refresh = function () {
+	if (this.kind === BLOCK) {
+		this.frame = this.used ? F_USED : (this.type === "?" ? F_QUESTION : F_BRICK);
+		this.flip = false;
+	} else {
+		this.frame = this.state === 2 ? F_SQUISH : F_GOOMBA + Math.floor(this.anim / 10) % 2;
+		this.flip = this.state === 4;
+	}
+};
+
+// advance one physics step
+Entity.prototype.tick = function (m) {
+	if (this.kind === BLOCK) this.tickBlock(); else this.tickGoomba(m);
+};
+
+// bump animation
+Entity.prototype.tickBlock = function () {
+	if (this.t > 0) { this.t--; this.off = Math.sin(Math.PI * (1 - this.t / BUMP)) * 8; }
+	else this.off = 0;
+};
+
+Entity.prototype.tickGoomba = function (m) {
+	var g = this;
+	if (g.state === 0) {
+		if (g.x < m.camX + ACTIVATE) g.state = 1;
+		return;
+	}
+	if (g.state === 2) {
+		if (--g.t <= 0) g.state = 3;
+		return;
+	}
+	if (g.state === 4) {                             // knocked off: no collision, just falls away
+		g.x += g.vx;
+		g.y += g.vy;
+		g.vy = Math.min(g.vy + 0.4375, 4);
+		if (g.y > TOP + ROWS * TILE + GH * 2) g.state = 3;
+		return;
+	}
+	if (g.state !== 1) return;
+
+	g.anim++;
+
+	// horizontal: turn around at walls
+	g.x += g.vx;
+	var d = g.vx < 0 ? -1 : 1, edge = g.x + d * GHW;
+	if (solid(edge, g.y - 1) || solid(edge, g.y - 8)) {
+		var c = Math.floor(edge / TILE);
+		g.x = d > 0 ? c * TILE - GHW : (c + 1) * TILE + GHW;
+		g.vx = -g.vx;
+	}
+
+	// goombas bounce off each other when they walk into one another
+	var L = $.goombas;
+	for (var j = 0; j < L.length; j++) {
+		var o = L[j];
+		if (o === g || o.state !== 1) continue;
+		if (Math.abs(g.x - o.x) < GHW * 2 && Math.abs(g.y - o.y) < GH && (o.x - g.x) * g.vx > 0) {
+			g.vx = -g.vx;
+			g.x += g.vx;                             // step back out of the overlap
+			break;
+		}
+	}
+
+	// vertical: gravity, land on tiles, walk off ledges
+	g.y += g.vy;
+	g.vy = Math.min(g.vy + 0.4375, 4);
+	if (g.vy >= 0 && (solid(g.x - GHW + 1, g.y) || solid(g.x + GHW - 1, g.y))) {
+		g.y = TOP + Math.floor((g.y - TOP) / TILE) * TILE;
+		g.vy = 0;
+	}
+
+	if (g.y > TOP + ROWS * TILE + GH) g.state = 3;     // fell in a pit
+	if (g.x < m.camX - 32) g.state = 3;                 // left behind
+};
+
+// builds the level and every entity in it.
+// $.entities = everything; $.blocks = { list, idx } and $.goombas = [...] are views onto the same objects.
+// blocks: one per B / ? / H tile, left to right, top to bottom within a column. Collision still lives in $.level.
+function loadWorld() {
+	$.level = buildLevel();
+	var blocks = [], idx = {}, goombas = [], c, r;
+	for (c = 0; c < W; c++) {
+		for (r = 0; r < ROWS; r++) {
+			var ch = $.level[r].charAt(c);
 			if ("B?H".indexOf(ch) >= 0) {
-				idx[c + "," + r] = list.length;
-				list.push({ c: c, r: r, type: ch, used: false, revealed: ch !== "H", gone: false, off: 0, t: 0 });
+				idx[c + "," + r] = blocks.length;
+				blocks.push(Entity.makeBlock(c, r, ch));
 			}
 		}
 	}
-	return { list: list, idx: idx };
+	for (c = 0; c < GOOMBA_COLS.length; c++) goombas.push(Entity.makeGoomba(GOOMBA_COLS[c]));
+	$.blocks = { list: blocks, idx: idx };
+	$.goombas = goombas;
+	$.entities = blocks.concat(goombas);
+	$.popups = [];                                   // fixed slots, slot N-1 is shown by text layer "Popup N"
+	for (var p = 0; p < POPUP_POOL; p++) $.popups.push({ x: 0, y: 0, t: 0, str: "" });
+}
+
+// ---------- SCORE POPUPS ----------
+// Take a free slot, or recycle the one closest to finishing. x / y are world coordinates (y = where the text starts).
+function spawnPopup(x, y, v) {
+	var best = $.popups[0];
+	for (var i = 0; i < $.popups.length; i++) {
+		var p = $.popups[i];
+		if (p.t <= 0) { best = p; break; }
+		if (p.t < best.t) best = p;
+	}
+	best.x = x; best.y = y; best.t = POPUP_TIME; best.str = String(v);
+}
+
+function tickPopups() {
+	for (var i = 0; i < $.popups.length; i++) {
+		var p = $.popups[i];
+		if (p.t > 0) { p.t--; p.y -= POPUP_RISE / POPUP_TIME; }
+	}
+}
+
+// goombas standing on a bumped block get knocked off and die
+function bumpKill(m, b) {
+	var top = TOP + b.r * TILE;
+	for (var i = 0; i < $.goombas.length; i++) {
+		var g = $.goombas[i];
+		if (g.state !== 1) continue;
+		if (Math.abs(g.y - top) < 2 && Math.abs(g.x - b.x) < TILE / 2 + GHW) {
+			g.state = 4;
+			g.vy = KNOCK_VY;
+			g.vx = (g.x >= m.x ? 1 : -1) * KNOCK_VX;     // fly away from Mario
+			m.addScore(GOOMBA_SCORE, g.x, g.y - GH);
+		}
+	}
 }
 
 // called when Mario's head hits tile (c, r)
@@ -115,74 +286,21 @@ function hitBlock(m, c, r) {
 	if (k === undefined) return null;
 	var b = $.blocks.list[k];
 	if (b.gone) return b;
-	if (b.type === "?" && !b.used) { b.used = true; m.addCoin(); }
-	if (b.t === 0) b.t = BUMP;                       // bump even if already used
+	if (b.type === "?" && !b.used) { b.used = true; m.addCoin(b.x, TOP + b.r * TILE - 4); }
+	if (b.t === 0) { b.t = BUMP; bumpKill(m, b); }   // bump even if already used
 	return b;
 }
 
-// advance bump animations one physics step
-function tickBlocks() {
-	var L = $.blocks.list;
-	for (var i = 0; i < L.length; i++) {
-		var b = L[i];
-		if (b.t > 0) { b.t--; b.off = Math.sin(Math.PI * (1 - b.t / BUMP)) * 8; }
-		else b.off = 0;
-	}
-}
-
-// ---------- GOOMBAS ----------
-// state: 0 = waiting offscreen, 1 = walking, 2 = squished, 3 = gone
-// Layer "Goomba N" in the comp reads entry N-1.
-function buildGoombas() {
-	var list = [];
-	for (var i = 0; i < GOOMBA_COLS.length; i++) {
-		list.push({ x: GOOMBA_COLS[i] * TILE + TILE / 2, y: GOOMBA_Y, vx: -GOOMBA_SPEED, vy: 0, state: 0, t: 0, anim: 0 });
-	}
-	return list;
-}
-
-// advance every goomba one physics step
-function tickGoombas(m) {
-	var L = $.goombas;
-	for (var i = 0; i < L.length; i++) {
-		var g = L[i];
-		if (g.state === 0) {
-			if (g.x < m.camX + ACTIVATE) g.state = 1;
-			continue;
-		}
-		if (g.state === 2) {
-			if (--g.t <= 0) g.state = 3;
-			continue;
-		}
-		if (g.state !== 1) continue;
-
-		g.anim++;
-
-		// horizontal: turn around at walls
-		g.x += g.vx;
-		var d = g.vx < 0 ? -1 : 1, edge = g.x + d * GHW;
-		if (solid(edge, g.y - 1) || solid(edge, g.y - 8)) {
-			var c = Math.floor(edge / TILE);
-			g.x = d > 0 ? c * TILE - GHW : (c + 1) * TILE + GHW;
-			g.vx = -g.vx;
-		}
-
-		// vertical: gravity, land on tiles, walk off ledges
-		g.y += g.vy;
-		g.vy = Math.min(g.vy + 0.4375, 4);
-		if (g.vy >= 0 && (solid(g.x - GHW + 1, g.y) || solid(g.x + GHW - 1, g.y))) {
-			g.y = TOP + Math.floor((g.y - TOP) / TILE) * TILE;
-			g.vy = 0;
-		}
-
-		if (g.y > TOP + ROWS * TILE + GH) g.state = 3;     // fell in a pit
-		if (g.x < m.camX - 32) g.state = 3;                 // left behind
-	}
+// advance every entity one physics step
+function tickEntities(m) {
+	var L = $.entities;
+	for (var i = 0; i < L.length; i++) L[i].tick(m);
 }
 
 // ---------- MARIO ----------
 function Mario() {
 	this.score = 0; this.coins = 0; this.lives = START_LIVES;
+	this.checkpoint = false;                         // survives deaths, cleared on game over
 	this.reset();
 	this.title = 1; this.titleT = 0;                 // black screen until the first input
 }
@@ -192,14 +310,18 @@ Mario.prototype.reset = function () {
 	this.ver = VERSION;
 	this.last = Date.now();
 	this.acc = 0;
-	this.x = SPAWN_X; this.y = SPAWN_Y;
+	this.x = this.checkpoint ? MIDWAY_COL * TILE + TILE / 2 : SPAWN_X;
+	this.y = SPAWN_Y;
 	this.vx = 0; this.vy = 0;
-	this.camX = 0;
+	this.camX = Math.max(0, this.x - SCREEN_MID);
+	this.stomp = 0;
 	this.onGround = true; this.prevJump = false;
 	this.holdG = 0; this.fallG = 0; this.g = 0;
+	this.jumpBuf = 0; this.jumpHold = 0; this.cut = false;
 	this.facing = 1;
-	this.time = START_TIME; this.tick = 0;
+	this.time = START_TIME; this.tick = 0; this.low = false;
 	this.frame = 0; this.animT = 0;
+	this.dying = false; this.deathT = 0;
 };
 
 // pick the sprite frame: 0 idle, 1-3 walk cycle, 4 skid, 5 jump
@@ -216,14 +338,40 @@ Mario.prototype.animate = function (dir) {
 	}
 };
 
-Mario.prototype.addScore = function (n) { this.score += n; };
+// x, y (world coords) are optional: when given, a floating number pops up there
+Mario.prototype.addScore = function (n, x, y) {
+	this.score += n;
+	if (x !== undefined) spawnPopup(x, y, n);
+};
 
-Mario.prototype.addLife = function () { this.lives++; };
+Mario.prototype.addLife = function (x, y) {
+	this.lives++;
+	if (x !== undefined) spawnPopup(x, y, "1UP");
+};
 
-Mario.prototype.addCoin = function () {
+Mario.prototype.addCoin = function (x, y) {
 	this.coins++;
-	this.addScore(COIN_SCORE);
+	this.addScore(COIN_SCORE, x, y);
 	if (this.coins >= 100) { this.coins = 0; this.lives++; }
+};
+
+// start the death animation (goomba / timeout): world freezes, Mario pauses, hops up, falls off the screen
+Mario.prototype.startDeath = function () {
+	this.dying = true; this.deathT = 0;
+	this.vx = 0; this.vy = 0;
+	this.frame = 6;
+};
+
+// one step of the death animation; calls die() once he has fallen off the bottom
+Mario.prototype.deathStep = function () {
+	this.frame = 6;
+	this.deathT++;
+	if (this.deathT === DEATH_FREEZE) this.vy = DEATH_VY;                // the hop
+	if (this.deathT >= DEATH_FREEZE) {
+		this.y += this.vy;                                               // no collision while dying
+		this.vy = Math.min(this.vy + DEATH_G, 4);
+		if (this.y - HEIGHT > TOP + ROWS * TILE) this.die();             // off the bottom of the screen
+	}
 };
 
 // lose a life (pit or timeout); game over wipes everything
@@ -231,11 +379,12 @@ Mario.prototype.die = function () {
 	this.lives--;
 	if (this.lives <= 0) {
 		this.score = 0; this.coins = 0; this.lives = START_LIVES;
+		this.checkpoint = false;                     // game over: back to the very start
 	}
-	$.level = buildLevel();                          // restore used / broken blocks
-	$.blocks = buildBlocks($.level);
-	$.goombas = buildGoombas();
+	loadWorld();                                     // restore used / broken blocks and respawn goombas
 	this.reset();
+	for (var i = 0; i < $.goombas.length; i++)       // goombas behind the respawn point are already gone
+		if ($.goombas[i].x < this.camX) $.goombas[i].state = 3;
 	this.title = 2; this.titleT = TITLE_TIME;        // black screen for a moment, then play resumes
 };
 
@@ -248,11 +397,12 @@ Mario.prototype.touchGoombas = function () {
 		if (Math.abs(this.x - g.x) < HW + GHW && this.y > g.y - GH && this.y - HEIGHT < g.y) {
 			if (this.vy > 0 && this.y < g.y - 6) {
 				g.state = 2; g.t = SQUISH;
-				this.addScore(GOOMBA_SCORE);
+				var n = this.stomp++;                        // chain: 100, 200, 400 ... then 1-UP
+				if (n < STOMP_SCORES.length) this.addScore(STOMP_SCORES[n], g.x, g.y - GH); else this.addLife(g.x, g.y - GH);
 				this.vy = -4; this.holdG = 0.125; this.fallG = 0.4375; this.g = this.holdG;   // bounce (holding jump = higher)
 				this.onGround = false;
 			} else {
-				this.die();
+				this.startDeath();
 				return true;
 			}
 		}
@@ -276,7 +426,8 @@ Mario.prototype.step = function (dir, run, jump) {
 		this.tick = 0;
 		if (this.time > 0) this.time--;
 	}
-	if (this.time <= 0) { this.die(); return; }      // out of time
+	this.low = this.time < LOW_TIME;
+	if (this.time <= 0) { this.startDeath(); return; }   // out of time
 
 	var maxV = run ? 2.5625 : 1.5625;
 	var accel = run ? 0.0556640625 : 0.037109375;
@@ -300,8 +451,12 @@ Mario.prototype.step = function (dir, run, jump) {
 		else this.vx -= Math.sign(this.vx) * decel;
 	}
 
-	// --- jump start (button must be re-pressed) ---
-	if (jump && !this.prevJump && this.onGround) {
+	// --- jump start: a flick up queues a jump (jumpBuf); it fires once Mario is on the ground ---
+	if (this.jumpBuf > 0) {
+		if (!this.onGround) this.jumpBuf--;
+	}
+	if (this.jumpBuf > 0 && this.onGround) {
+		this.jumpBuf = 0;
 		var ax = Math.abs(this.vx);
 		if (ax < 1.0)         { this.vy = -4; this.holdG = 0.125;     this.fallG = 0.4375; }
 		else if (ax < 2.3125) { this.vy = -4; this.holdG = 0.1171875; this.fallG = 0.375;  }
@@ -342,6 +497,7 @@ Mario.prototype.step = function (dir, run, jump) {
 			this.y = TOP + Math.floor((this.y - TOP) / TILE) * TILE;   // land on tile top
 			this.vy = 0;
 			this.onGround = true;
+			this.stomp = 0;                                            // touching the ground ends the chain
 		}
 	} else {
 		// hidden 1-up block: only reacts when his head comes up into it from below
@@ -354,7 +510,7 @@ Mario.prototype.step = function (dir, run, jump) {
 			if (hc >= 0) {
 				var hline = $.level[hr];
 				$.level[hr] = hline.substr(0, hc) + "U" + hline.substr(hc + 1);   // becomes a used block, now solid
-				this.addLife();
+				this.addLife(hc * TILE + TILE / 2, TOP + hr * TILE - 4);
 				var hb = $.blocks.list[$.blocks.idx[hc + "," + hr]];
 				if (hb) { hb.revealed = true; hb.used = true; hb.t = BUMP; }
 			}
@@ -377,7 +533,7 @@ Mario.prototype.step = function (dir, run, jump) {
 					$.level[r] = line.substr(0, bc) + "." + line.substr(bc + 1);
 					var bb = hitBlock(this, bc, r);
 					if (bb) bb.gone = true;
-					this.addScore(BRICK_SCORE);
+					this.addScore(BRICK_SCORE, bc * TILE + TILE / 2, TOP + r * TILE - 4);
 				} else {
 					hitBlock(this, bc, r);
 				}
@@ -390,6 +546,8 @@ Mario.prototype.step = function (dir, run, jump) {
 	if (this.y > TOP + ROWS * TILE + HEIGHT) { this.die(); return; }   // fell in a pit
 	if (this.touchGoombas()) return;                                   // stomped or killed by a goomba
 
+	if (this.x >= MIDWAY_COL * TILE) this.checkpoint = true;           // passed the midway point
+
 	// --- camera: forward only, no right-edge clamp ---
 	this.camX = Math.max(this.camX, this.x - SCREEN_MID);
 	if (this.x < this.camX + LEFT_PAD) {
@@ -401,10 +559,8 @@ Mario.prototype.step = function (dir, run, jump) {
 };
 
 // ---------- INIT ----------
-if ($.mario === undefined || $.mario.ver !== VERSION || $.level === undefined) {
-	$.level = buildLevel();
-	$.blocks = buildBlocks($.level);
-	$.goombas = buildGoombas();
+if ($.mario === undefined || $.mario.ver !== VERSION || $.level === undefined || $.entities === undefined || $.popups === undefined) {
+	loadWorld();
 	$.mario = new Mario();
 }
 var m = $.mario;
@@ -417,7 +573,8 @@ var dy = value[1] - HOME_Y;
 var dead = thisComp.width * 0.05;
 var dir = dx > dead ? 1 : (dx < -dead ? -1 : 0);
 var run = Math.abs(dx) > thisComp.width * 0.3;
-var jump = dy < -thisComp.height * 0.1;
+var down = dy > thisComp.height * HOLD_DOWN;    // joystick held low in the air = jump released (heavier gravity)
+var jump = dy < -thisComp.height * HOLD_UP;   // joystick held up: keeps the jump going (higher hop). Starting a jump needs a flick, see below
 
 // ---------- FIXED TIMESTEP (clamped) ----------
 var now = Date.now();
@@ -431,6 +588,20 @@ m.acc += Math.min(dt, STEP * 3);         // never bank more than 3 steps of time
 // walking deadzone, and sits outside the step loop so a frame that banks less than one step can't miss it
 if (m.title === 1 && (Math.abs(dx) > START_MOVE || Math.abs(dy) > START_MOVE)) { m.title = 0; m.prevJump = jump; }
 
+// flick up = jump: a fast upward move of the joystick within one evaluation (only while actually playing)
+if (m.prevDy === undefined) m.prevDy = dy;
+if (m.title === 0 && !m.dying && dy - m.prevDy <= -FLICK_DELTA) {
+	m.jumpBuf = JUMP_BUFFER;
+	m.jumpHold = FLICK_HOLD;
+	m.cut = false;                                   // a fresh jump
+}
+// flick down = let go of the jump: heavier gravity for the rest of this airtime, so the hop is cut short
+if (m.title === 0 && !m.dying && dy - m.prevDy >= FLICK_DELTA) {
+	m.cut = true;
+	m.jumpHold = 0;
+}
+m.prevDy = dy;
+
 var steps = 0;
 while (m.acc >= STEP && steps < 3) {     // hard limit per evaluation
 	m.acc -= STEP;
@@ -438,27 +609,50 @@ while (m.acc >= STEP && steps < 3) {     // hard limit per evaluation
 		if (--m.titleT <= 0) { m.title = 0; m.prevJump = jump; }
 	}
 	if (m.title === 0) {                 // game is frozen while the screen shows
-		m.step(dir, run, jump);
-		tickBlocks();
-		tickGoombas(m);
+		if (m.dying) {
+			m.deathStep();               // only Mario moves during the death animation
+		} else {
+			if (m.jumpHold > 0) m.jumpHold--;
+			if (m.onGround) m.cut = false;               // cut only lasts for one airtime
+			m.step(dir, run, (m.jumpHold > 0 || (jump && !down)) && !m.cut);   // a flick holds the jump wherever the stick is
+			tickEntities(m);
+			tickPopups();
+		}
 	}
 	steps++;
 }
 m.acc = Math.min(m.acc, STEP);           // drop any leftover backlog
+
+// ---------- LAYER POOL ----------
+// Only entities that are drawn AND on (or just next to) the screen get a layer. "Entity N" layers show the Nth
+// entry of this list, so a fixed set of layers gets reused as the level scrolls past.
+var camL = m.camX - TILE, camR = m.camX + thisComp.width + TILE;
+var ve = [], q;
+for (q = 0; q < $.entities.length; q++) {
+	var en = $.entities[q];
+	if (en.shown() && en.x + TILE / 2 > camL && en.x - TILE / 2 < camR) { en.refresh(); ve.push(en); }
+}
+$.visEntities = ve;
 
 value;
 
 // MARIO
 $.mario ? [$.mario.x - $.mario.camX, $.mario.y] : value;
 
-// MARIO TIME REMAP (0 idle, 1-3 walk, 4 skid, 5 jump)
+// MARIO TIME REMAP (0 idle, 1-3 walk, 4 skid, 5 jump, 6 death)
 $.mario ? framesToTime($.mario.frame) : 0;
 
 // MARIO SCALE (flips horizontally with facing)
 $.mario ? [$.mario.facing * 100, 100] : [100, 100];
 
-// TIME
-"TIME\n" + ($.mario ? ("000" + $.mario.time).slice(-3) : "400");
+// TIME (Source Text; flashes red below LOW_TIME, needs After Effects 2020 / v17+ for setFillColor)
+var m = $.mario;
+var str = "TIME\n" + (m ? ("000" + m.time).slice(-3) : "400");
+if (m && m.low && m.tick < 12) {                 // red for half of each timer unit (12 of 24 steps), base colour otherwise
+	text.sourceText.createStyle().setFillColor([1, 0.2, 0.2]).setText(str);
+} else {
+	str;
+}
 
 // COINS
 $.mario ? "x" + ("00" + $.mario.coins).slice(-2) : "x00";
@@ -473,39 +667,44 @@ $.mario ? "x" + ("00" + $.mario.coins).slice(-2) : "x00";
 var BASE_X = 1792, BASE_Y = 120;
 $.mario ? [BASE_X - $.mario.camX, BASE_Y] : value;
 
-// BLOCK LAYERS: 44 duplicates of the 16x16 BlockArt precomp named "Block 1" ... "Block 44", anchor [8, 8]
-// (Block N shows entry N-1 of $.blocks.list; paste each expression onto every block layer)
+// ENTITY LAYERS: 26 duplicates (ENTITY_POOL) of ONE 16x16 precomp named "Entity 1" ... "Entity 26", anchor [8, 8]
+// precomp frames: 0 brick, 1 ? block, 2 used block, 3-4 goomba walk cycle, 5 goomba squished (the F_ constants)
+// (Entity N shows entry N-1 of $.visEntities, whatever block or goomba is on screen; paste each expression onto every entity layer)
 
-// BLOCK POSITION
+// ENTITY POSITION (centre of the sprite; bump offset lifts blocks)
 var m = $.mario;
-var b = $.blocks ? $.blocks.list[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
-(m && b) ? [b.c * 16 + 8 - m.camX, 32 + b.r * 16 + 8 - b.off] : value;
+var e = $.visEntities ? $.visEntities[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
+(m && e) ? [e.x - m.camX, e.y - e.off - 8] : value;
 
-// BLOCK TIME REMAP (frame 0 = brick, 1 = ? block, 2 = used block)
-var b = $.blocks ? $.blocks.list[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
-b ? framesToTime(b.used ? 2 : (b.type === "?" ? 1 : 0)) : 0;
+// ENTITY TIME REMAP
+var e = $.visEntities ? $.visEntities[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
+e ? framesToTime(e.frame) : 0;
 
-// BLOCK OPACITY (0% until revealed, 0% when broken)
-var b = $.blocks ? $.blocks.list[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
-(b && (!b.revealed || b.gone)) ? 0 : 100;
+// ENTITY OPACITY (0% when the layer has no entity assigned)
+var e = $.visEntities ? $.visEntities[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
+e ? 100 : 0;
 
-// GOOMBA LAYERS: 16 duplicates of the 16x16 GoombaArt precomp named "Goomba 1" ... "Goomba 16", anchor [8, 16]
-// (Goomba N shows entry N-1 of $.goombas; paste each expression onto every goomba layer)
-
-// GOOMBA POSITION
-var m = $.mario;
-var g = $.goombas ? $.goombas[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
-(m && g) ? [g.x - m.camX, g.y] : value;
-
-// GOOMBA TIME REMAP (frames 0 and 1 = walk cycle, 2 = squished)
-var g = $.goombas ? $.goombas[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
-g ? framesToTime(g.state === 2 ? 2 : Math.floor(g.anim / 10) % 2) : 0;
-
-// GOOMBA OPACITY (0% while waiting offscreen or after they are gone)
-var g = $.goombas ? $.goombas[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
-(g && (g.state === 1 || g.state === 2)) ? 100 : 0;
+// ENTITY SCALE (flips upside down when a goomba is knocked off a block)
+var e = $.visEntities ? $.visEntities[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
+(e && e.flip) ? [100, -100] : [100, 100];
 
 // TITLE SCREEN: a black solid named "Title Black", ABOVE the gameplay layers but BELOW the HUD text layers
 
 // TITLE BLACK OPACITY
 ($.mario && $.mario.title === 0) ? 0 : 100;      // only hidden once the game says play has started; undefined = fully opaque
+
+// ---------- SCORE POPUP TEXT LAYERS ----------
+// 3 (POPUP_POOL) text layers named "Popup 1", "Popup 2", "Popup 3". Set each one's paragraph to CENTER justified,
+// so the Position below is the middle of the number. Paste each expression onto every popup layer.
+
+// POPUP SOURCE TEXT
+var p = $.popups ? $.popups[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
+(p && p.t > 0) ? p.str : "";
+
+// POPUP POSITION
+var p = $.popups ? $.popups[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
+($.mario && p && p.t > 0) ? [p.x - $.mario.camX, p.y] : value;
+
+// POPUP OPACITY
+var p = $.popups ? $.popups[parseInt(thisLayer.name.split(" ")[1], 10) - 1] : null;
+(p && p.t > 0) ? 100 : 0;
