@@ -8,7 +8,7 @@ const MIDWAY_COL = 96;                 // tile column of the midway checkpoint: 
 const RESPAWN_SAFE = 96;               // goombas within this many px ahead of the respawn point are removed, so you never respawn on top of one
 const SCREEN_MID = 112, LEFT_PAD = 8;  // screen x where Mario is kept while the camera scrolls; minimum distance from the left screen edge
 const X_GAIN = 2;                      // joystick x sensitivity: 2 = half the stick travel is needed to walk / run
-const VERSION = 39;                     // changing this value reinitialises the stored game state
+const VERSION = 40;                     // changing this value reinitialises the stored game state
 
 const TILE = 16, TOP = 32, ROWS = 13;
 const W = 224;                         // 3584 px BG / 16 = 224 tiles
@@ -43,6 +43,7 @@ const BEHIND_HIGH_INDEX = false;       // which entity layers the mushrooms, sta
                                      //         (the order you get by duplicating the layer upwards)
                                      // true  = the LAST layers: Entity 30 must sit at the bottom, Entity 1 at the top
 const F_MARIO_BIG = 9;                 // Mario precomp: big frames = small frame + 9 (9 idle, 10-12 walk, 13 skid, 14 jump, 16-17 pole)
+const F_MARIO_FIRE = 18;               // Mario precomp: fire frames = small frame + 18 (18 idle, 19-21 walk, 22 skid, 23 jump, 25-26 pole). Same layout as the big block, just in fire colours, so no recolour effect is needed
 const F_MARIO_MID = 15;                // Mario precomp: the in-between size, only seen during the grow / shrink flicker (fills the slot where a big death frame would be)
 
 // ---------- BLOCK CONTENTS ----------
@@ -711,8 +712,7 @@ class Mario {
 		this.end = 0; this.endT = 0; this.hidden = false;   // ending state
 		this.big = false; this.h = HEIGHT;               // size: always small after a death / restart
 		this.fire = false;                               // fire Mario (always big too)
-		this.fx = false;                                 // the fire-colour boolean for the Mario layer, see fireLook()
-		this.fireBuf = 0; this.fireCd = 0; this.fireUntil = 0; this.prevFire = 0;   // fire request buffer, throw cooldown, jump lock after a fire flick, checkbox edge
+				this.fireBuf = 0; this.fireCd = 0; this.fireUntil = 0; this.prevFire = 0;   // fire request buffer, throw cooldown, jump lock after a fire flick, checkbox edge
 		this.timeUp = false;                             // true when the current death was caused by the timer running out
 		this.star = 0;                                   // invincibility steps left after a star
 		this.inv = 0;                                    // invulnerability steps left (flickers)
@@ -744,25 +744,17 @@ class Mario {
 	// which part of the grow / shrink flicker we are in: 0 small, 1 in-between, 2 big
 	morphK() { return [0, 1, 2, 1][(Math.floor(this.morphT / MORPH_STEP) + (this.morphDir > 0 ? 0 : 2)) % 4]; }
 
-	// the boolean for the fire recolour effect on the Mario layer: true while Mario should be drawn in fire colours.
-	// fire Mario uses the plain big frames. While he picks up the flower the colour flickers normal <-> fire, and while he shrinks only the big frames keep it
-	fireLook() {
-		if (this.dying) return false;
-		if (this.morph > 0) {
-			if (this.morphDir === 2) return Math.floor(this.morphT / MORPH_STEP) % 2 === 1;
-			return this.fire && this.morphK() === 2;
-		}
-		return this.fire;
-	}
-
 	spriteRaw() {
 		if (this.dying) return 6;
 		if (this.morph > 0) {
-			if (this.morphDir === 2) return F_MARIO_BIG + this.frame;   // getting the flower: stays big, only the colour flickers (see fireLook)
+			if (this.morphDir === 2) return (Math.floor(this.morphT / MORPH_STEP) % 2 === 1 ? F_MARIO_FIRE : F_MARIO_BIG) + this.frame;   // getting the flower: stays big, flickers normal <-> fire frames
 			const k = this.morphK();                                    // small, mid, big, mid
-			return k === 1 ? F_MARIO_MID : (k === 2 ? F_MARIO_BIG + this.frame : this.frame);
+			if (k === 1) return F_MARIO_MID;
+			if (k === 2) return (this.fire ? F_MARIO_FIRE : F_MARIO_BIG) + this.frame;   // shrinking from fire: only the big-size frames keep the fire colours
+			return this.frame;
 		}
-		return this.big ? F_MARIO_BIG + this.frame : this.frame;
+		if (this.big) return (this.fire ? F_MARIO_FIRE : F_MARIO_BIG) + this.frame;
+		return this.frame;
 	}
 
 	// a goomba touched Mario from the side: big Mario shrinks, small Mario dies
@@ -1243,7 +1235,6 @@ $.visEntities = BEHIND_HIGH_INDEX ? [...ve, ...mv] : [...mv, ...ve];
 $.visEntities.forEach(en => en.refresh());
 $.koopa.refreshKoopa();                           // frame / visibility for the "Koopa" layer
 m.spr = m.sprite();                              // frame for the Mario layer's time remap
-m.fx = m.fireLook();                             // fire-colour boolean for the recolour effect
 
 value;
 
@@ -1257,15 +1248,11 @@ $.mario && $.mario.star > 0 ? ($.mario.star * 24) % 360 : 0;
 // MARIO TIME REMAP (small: 0 idle, 1-3 walk, 4 skid, 5 jump, 6 death, 7-8 flagpole climb
 //                   big:   9 idle, 10-12 walk, 13 skid, 14 jump, 16-17 flagpole climb
 //                   15 = in-between size, shown while growing / shrinking
-//                   fire Mario uses the big frames too: recolour him with the MARIO FIRE COLOUR boolean below)
+//                   fire:  18 idle, 19-21 walk, 22 skid, 23 jump, 25-26 flagpole climb (small frame + F_MARIO_FIRE))
 // guarded: $.mario can be missing, stale (old VERSION without .spr) or not evaluated yet, so force a finite number
 let f = 0;
 if ($.mario && $.mario.spr !== undefined && $.mario.spr !== null) { f = Number($.mario.spr); if (!isFinite(f)) f = 0; }
 framesToTime(f);
-
-// MARIO FIRE COLOUR: drive an AE effect on the Mario layer with this (e.g. the Amount / Intensity of a Tint, Colorama or Hue/Saturation, or a Checkbox
-// that switches it on). 1 = fire Mario colours, 0 = normal. It flickers while he picks up the flower, so the freeze shows normal <-> fire
-($.mario && $.mario.fx) ? 1 : 0;
 
 // MARIO SCALE (flips horizontally with facing)
 $.mario ? [$.mario.facing * 100, 100] : [100, 100];
