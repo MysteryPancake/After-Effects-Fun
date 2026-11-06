@@ -126,7 +126,7 @@ You can delete variable names like so:
 delete leak_5_hi;
 ```
 
-[Many characters aren't allowed in variable names](https://www.dummies.com/web-design-development/javascript/naming-javascript-variables/), so [you have to be creative](projects/PONG/PONG.js#L92-L100).
+[Many characters aren't allowed in variable names](https://www.dummies.com/web-design-development/javascript/naming-javascript-variables/), so [you have to be creative](projects/PONG/PONG_old.js#L92-L100).
 
 ### 2. The Debug Object (JavaScript + ExtendScript)
 
