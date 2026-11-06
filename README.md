@@ -42,7 +42,7 @@ These were made using [custom exploits](#break)!
 [![Camera snapping demo](https://img.youtube.com/vi/VJOOgkROCwU/mqdefault.jpg)](https://youtu.be/VJOOgkROCwU)
 
 ## Tools
-[Image to expression converter](https://mysterypancake.github.io/After-Effects-Fun/tools/imagetoexpression)
+[Image to expression converter](https://mysterypancake.github.io/After-Effects-Fun/tools/imagetoexpression2)
 
 [![Expression converter](https://img.youtube.com/vi/sEwBKQni7kU/mqdefault.jpg)](https://youtu.be/sEwBKQni7kU)
 [![Expression demo](https://img.youtube.com/vi/OfXQXMyMp-U/mqdefault.jpg)](https://youtu.be/OfXQXMyMp-U)
