@@ -8,7 +8,7 @@ const MIDWAY_COL = 96;                 // tile column of the midway checkpoint: 
 const RESPAWN_SAFE = 96;               // goombas within this many px ahead of the respawn point are removed, so you never respawn on top of one
 const SCREEN_MID = 112, LEFT_PAD = 8;  // screen x where Mario is kept while the camera scrolls; minimum distance from the left screen edge
 const X_GAIN = 2;                      // joystick x sensitivity: 2 = half the stick travel is needed to walk / run
-const VERSION = 34;                     // changing this value reinitialises the stored game state
+const VERSION = 1;                     // changing this value reinitialises the stored game state
 
 const TILE = 16, TOP = 32, ROWS = 13;
 const W = 224;                         // 3584 px BG / 16 = 224 tiles
@@ -26,12 +26,23 @@ const MUSH_HW = 7;                     // mushroom half-width (hitbox)
 const GROW_TIME = 48, SHRINK_TIME = 48;   // steps the whole game freezes while Mario grows / shrinks
 const MORPH_STEP = 4;                  // steps per sprite swap during that freeze
 const INVULN = 120;                    // steps of flickering invulnerability after being hit (120 = 2 s)
+// ---------- FIRE FLOWER + FIREBALLS ----------
+// A power ? block gives a mushroom to small Mario and a FIRE FLOWER to big Mario. Fire Mario hit by a goomba shrinks to small.
+const FIRE_DELTA = 20;                 // px the joystick must move DOWN in a single evaluation to throw a fireball (a harder flick than FLICK_DELTA, which only cuts a jump short)
+const FIRE_LOCK = 12;                  // steps after a fire flick during which the "stick coming back up" jump is ignored
+const FIRE_BUF = 6;                    // steps a fire request is remembered (so a throw while the cooldown / 2-fireball limit is busy still goes out)
+const FIRE_MAX = 2;                    // fireballs alive at once
+const FIRE_COOLDOWN = 8;               // minimum steps between two throws
+const FIRE_SPEED = 3, FIRE_BOUNCE = -3.2;   // horizontal px per step, and the upward speed of every bounce (gravity is GRAVITY)
+const FIRE_HW = 4;                     // fireball half-width (hitbox); the ball itself is 8x8, centred in its 16x16 sprite frame
+const FIRE_SPIN = 30;                  // degrees per step the fireball's entity layer rotates (positive = clockwise, flips with the throwing direction)
+const FIRE_BURST_TIME = 9, FIRE_BURST_SCALE = 250;   // explosion: steps it lasts, and the % the entity layer scales up to over that time
+const FLOWER_ANIM = 8;                 // steps per fire flower frame (2 frames)
 const BEHIND_HIGH_INDEX = false;       // which entity layers the mushrooms, stars and coin pops use, so they can rise out from BEHIND the block.
                                      // false = the FIRST layers (Entity 1, 2 ...): Entity 1 must sit at the BOTTOM of the entity layers, Entity 30 at the top
                                      //         (the order you get by duplicating the layer upwards)
                                      // true  = the LAST layers: Entity 30 must sit at the bottom, Entity 1 at the top
 const F_MARIO_BIG = 9;                 // Mario precomp: big frames = small frame + 9 (9 idle, 10-12 walk, 13 skid, 14 jump, 16-17 pole)
-const F_MARIO_DUCK = 18;               // Mario precomp: big Mario ducking (drawn in the bottom 16 px, like a small frame)
 const F_MARIO_MID = 15;                // Mario precomp: the in-between size, only seen during the grow / shrink flicker (fills the slot where a big death frame would be)
 
 // ---------- BLOCK CONTENTS ----------
@@ -55,7 +66,7 @@ const FLICK_DELTA = 8;                 // px the joystick must move UP in a sing
 const FLICK_HOLD = 14;                 // steps a flick counts as "jump held" (full-height hop even if you let go right away)
 const JUMP_BUFFER = 6;                 // steps a flick is remembered, so one just before landing still jumps
 const HOLD_UP = 0.1;                   // keeping the joystick this far above centre (fraction of height) holds the jump for a higher hop
-const DUCK_DOWN = 0.2;                 // joystick this far below centre (fraction of height) on the ground = big Mario ducks
+const LOW_STICK = 0.2;                 // joystick this far below centre (fraction of height): coming back up from there only counts as a jump if the stick ends above centre
 const HOLD_DOWN = 0.1;                 // joystick this far below centre (fraction of height) = jump released, heavier gravity
 const START_MOVE = 1;                  // px the joystick must leave its centre to dismiss the start screen (the deadzone does not apply)
 const MSG_START = "Move joystick to play!", MSG_OVER = "Game over!", MSG_TIMEUP = "Time up!", MSG_WIN = "You win!";   // the text of the title-screen label
@@ -198,12 +209,15 @@ function fallY(o, hw) {
 //   t     BLOCK: bump timer.  GOOMBA: squish timer
 //   off   upward bump offset in px (blocks only, 0 otherwise)
 //   frame / flip   what the sprite layer should show, filled in by refresh()
-const BLOCK = 0, GOOMBA = 1, FLAG = 2, MUSHROOM = 3, COIN = 4, STAR = 5, CFLAG = 6;   // CFLAG: the flag that rises on the castle (state 0 = hidden, waiting for Mario to enter the door, 1 = rising / raised)
+const BLOCK = 0, GOOMBA = 1, FLAG = 2, MUSHROOM = 3, COIN = 4, STAR = 5, CFLAG = 6, FLOWER = 7, FIREBALL = 8;   // FLOWER: fire flower (rises, then stays put).  FIREBALL: state 1 = flying, 2 = exploding, 3 = gone.  CFLAG: the flag that rises on the castle (state 0 = hidden, waiting for Mario to enter the door, 1 = rising / raised)
 // frames of the single sprite precomp (comp frame numbers, 0-based)
 const F_BRICK = 0, F_QUESTION = 1, F_USED = 2, F_GOOMBA = 3 /* 3 and 4 = walk cycle */, F_SQUISH = 5, F_FLAG = 6, F_MUSHROOM = 7,
     F_QUESTION2 = 8, F_QUESTION3 = 9 /* ? flicker shades */, F_COIN = 10 /* 10-13 spin */, F_STAR = 14 /* 14-15 */,
     F_CFLAG = 16,                    // castle flag: add this frame to the Entity precomp
-    F_1UP = 17;                      // green 1-UP mushroom (from the hidden block): add this frame to the Entity precomp
+    F_1UP = 17,                      // green 1-UP mushroom (from the hidden block): add this frame to the Entity precomp
+    F_FLOWER = 18 /* 18-19 */,       // fire flower, 2 frames
+    F_FIREBALL = 20,                 // fireball: ONE frame (8x8 ball centred in the 16x16 frame). The layer rotates it while it flies
+    F_FIREBURST = 21;                // fireball explosion: ONE frame. The layer scales it up while it lasts
 
 // the shade of an unused ? block right now: bright (held), then mid, dark, mid, driven by Mario's step clock.
 // computed once per evaluation into $.qf, which every ? block reads
@@ -222,6 +236,7 @@ class Entity {
 		this.vx = 0; this.vy = 0;
 		this.state = 1; this.t = 0; this.anim = 0; this.off = 0;
 		this.frame = 0; this.flip = false;
+		this.rot = 0; this.scl = 100; this.dir = 1;         // layer rotation (deg) and scale (%) for the sprite layer, and a fireball's throwing direction
 		this.oneup = false;                              // MUSHROOM only: true = green 1-UP mushroom (gives a life instead of growing)
 		// block-only fields
 		this.c = 0; this.r = 0; this.type = ""; this.content = ""; this.coins = 0; this.mt = 0; this.used = false; this.revealed = true; this.gone = false; this.active = false;
@@ -259,6 +274,13 @@ class Entity {
 	}
 
 	// a coin popping out of block b: flies up and lands back on the block, where it turns into the score popup
+	// a fireball thrown by Mario. y = the ball's bottom; off = -4 drops the 16x16 sprite so an 8x8 ball sits exactly on that point
+	static makeFireball(x, y, dir) {
+		const e = new Entity(FIREBALL, x, y);
+		e.vx = dir * FIRE_SPEED; e.vy = 1; e.off = -4; e.dir = dir;
+		return e;
+	}
+
 	static makeCoin(b) {
 		const e = new Entity(COIN, b.x, TOP + b.r * TILE);
 		e.vy = COIN_VY; e.y0 = e.y;
@@ -276,19 +298,27 @@ class Entity {
 		if (this.kind === FLAG) return true;
 		if (this.kind === CFLAG) return this.state === 1;
 		if (this.kind === BLOCK) return this.revealed && !this.gone;
-		if (this.kind === MUSHROOM || this.kind === STAR) return this.state === 0 || this.state === 1;
+		if (this.kind === MUSHROOM || this.kind === STAR || this.kind === FLOWER) return this.state === 0 || this.state === 1;
+		if (this.kind === FIREBALL) return this.state === 1 || this.state === 2;
 		if (this.kind === COIN) return this.state === 1;
 		return this.state === 1 || this.state === 2 || this.state === 4;
 	}
 
 	// pick the sprite frame and flip for the layer that is showing this entity
 	refresh() {
+		this.scl = 100;                                  // sprite layer scale in %, only the fireball explosion changes it
 		if (this.kind === FLAG) {
 			this.frame = F_FLAG; this.flip = false;
 		} else if (this.kind === CFLAG) {
 			this.frame = F_CFLAG; this.flip = false;
 		} else if (this.kind === MUSHROOM) {
 			this.frame = this.oneup ? F_1UP : F_MUSHROOM; this.flip = false;
+		} else if (this.kind === FLOWER) {
+			this.frame = F_FLOWER + Math.floor(this.anim / FLOWER_ANIM) % 2; this.flip = false;
+		} else if (this.kind === FIREBALL) {
+			this.frame = this.state === 2 ? F_FIREBURST : F_FIREBALL;
+			if (this.state === 2) this.scl = 100 + (FIRE_BURST_SCALE - 100) * Math.min(1, this.anim / FIRE_BURST_TIME);   // explosion = the ball growing
+			this.flip = false;
 		} else if (this.kind === STAR) {
 			this.frame = F_STAR + Math.floor(this.anim / STAR_ANIM) % 2; this.flip = false;
 		} else if (this.kind === COIN) {
@@ -304,7 +334,7 @@ class Entity {
 
 	// advance one physics step
 	tick(m) {
-		if (this.kind === GOOMBA) this.tickGoomba(m); else if (this.kind === MUSHROOM || this.kind === STAR) this.tickPowerup(m); else if (this.kind === COIN) this.tickCoin(); else if (this.kind === CFLAG) this.tickCastleFlag(m);
+		if (this.kind === GOOMBA) this.tickGoomba(m); else if (this.kind === MUSHROOM || this.kind === STAR || this.kind === FLOWER) this.tickPowerup(m); else if (this.kind === FIREBALL) this.tickFireball(m); else if (this.kind === COIN) this.tickCoin(); else if (this.kind === CFLAG) this.tickCastleFlag(m);
 	}
 
 	// castle flag: appears and rises as soon as Mario has walked into the castle door (ending step 4 onwards)
@@ -377,6 +407,10 @@ class Entity {
 			return;
 		}
 		if (g.state !== 1) return;
+		if (g.kind === FLOWER) {                         // the flower just sits there until Mario takes it
+			if (g.x < m.camX - 32) g.state = 3;
+			return;
+		}
 
 		walkX(g, MUSH_HW);
 		if (fallY(g, MUSH_HW) && g.kind === STAR) g.vy = STAR_BOUNCE;   // the star hops every time it lands
@@ -384,6 +418,49 @@ class Entity {
 
 		if (g.y > TOP + ROWS * TILE + 16) g.state = 3;   // fell in a pit
 		if (g.x < m.camX - 32) g.state = 3;              // left behind
+	}
+
+	// fireball: flies straight, bounces along the ground, explodes on walls / ceilings and kills goombas
+	explode() {
+		this.state = 2; this.anim = 0; this.vx = 0; this.vy = 0; this.rot = 0;   // the explosion frame is not rotated
+	}
+
+	tickFireball(m) {
+		const f = this;
+		f.anim++;
+		if (f.state === 2) {                             // exploding: the layer scales up for FIRE_BURST_TIME steps, then it is gone
+			if (f.anim >= FIRE_BURST_TIME) f.state = 3;
+			return;
+		}
+		if (f.state !== 1) return;
+		f.rot += f.dir * FIRE_SPIN;                      // spin (the layer's Rotation reads this)
+
+		f.x += f.vx;
+		if (solid(f.x + (f.vx < 0 ? -FIRE_HW : FIRE_HW), f.y - 4)) { f.explode(); return; }   // hit a wall / pipe / block side
+
+		f.y += f.vy;
+		f.vy = Math.min(f.vy + GRAVITY, TERMINAL_VY);
+		if (f.vy >= 0 && (solid(f.x - FIRE_HW + 1, f.y) || solid(f.x + FIRE_HW - 1, f.y))) {
+			f.y = TOP + Math.floor((f.y - TOP) / TILE) * TILE;   // land on the tile top...
+			f.vy = FIRE_BOUNCE;                                  // ...and bounce
+		} else if (f.vy < 0 && solid(f.x, f.y - 8)) {            // hit a ceiling
+			f.explode(); return;
+		}
+
+		for (const g of $.goombas) {                     // burn goombas
+			if (g.state !== 1) continue;
+			if (Math.abs(g.x - f.x) < GHW + FIRE_HW && Math.abs((g.y - GH / 2) - (f.y - 4)) < GH / 2 + 4) {
+				g.state = 4;
+				g.vy = KNOCK_VY;
+				g.vx = (f.vx >= 0 ? 1 : -1) * KNOCK_VX;
+				m.addScore(GOOMBA_SCORE, g.x, g.y - GH);
+				f.explode();
+				return;
+			}
+		}
+
+		if (f.y > TOP + ROWS * TILE + 16) f.state = 3;                   // fell in a pit
+		if (f.x < m.camX - 32 || f.x > m.camX + ACTIVATE + 16) f.state = 3;   // left the screen
 	}
 
 	// coin popping out of a block
@@ -503,7 +580,7 @@ function hitBlock(m, c, r) {
 			useBlock(b);
 			if (b.content === "coin") popCoin(m, b);
 			else if (b.content === "star") $.items.push(Entity.makePowerup(STAR, b));
-			else $.items.push(Entity.makePowerup(MUSHROOM, b));        // mushroom
+			else $.items.push(Entity.makePowerup(m.big ? FLOWER : MUSHROOM, b));   // mushroom for small Mario, fire flower for big Mario
 		}
 	}
 	if (b.t === 0) { b.t = BUMP; bumpKill(m, b); }   // bump even if already used
@@ -553,8 +630,10 @@ class Mario {
 		this.dying = false; this.deathT = 0;
 		this.end = 0; this.endT = 0; this.hidden = false;   // ending state
 		this.big = false; this.h = HEIGHT;               // size: always small after a death / restart
+		this.fire = false;                               // fire Mario (always big too)
+		this.fx = false;                                 // the fire-colour boolean for the Mario layer, see fireLook()
+		this.fireBuf = 0; this.fireCd = 0; this.fireUntil = 0; this.prevFire = 0;   // fire request buffer, throw cooldown, jump lock after a fire flick, checkbox edge
 		this.timeUp = false;                             // true when the current death was caused by the timer running out
-		this.ducking = false;                            // big Mario crouching: hitbox drops to small height
 		this.star = 0;                                   // invincibility steps left after a star
 		this.inv = 0;                                    // invulnerability steps left (flickers)
 		this.morph = 0; this.morphDir = 0; this.morphT = 0;   // grow / shrink freeze: steps left, +1 grow / -1 shrink, steps elapsed
@@ -566,30 +645,43 @@ class Mario {
 	startMorph(dir) {
 		this.morph = dir > 0 ? GROW_TIME : SHRINK_TIME;
 		this.morphDir = dir; this.morphT = 0;
-		this.ducking = false;                            // stands up for the size-change flicker
 	}
 
 	morphStep() {
 		this.morphT++;
 		if (--this.morph > 0) return;
-		if (this.morphDir > 0) { this.big = true; this.h = BIG_HEIGHT; }
-		else { this.big = false; this.h = HEIGHT; this.inv = INVULN; }
+		if (this.morphDir > 0) { this.big = true; this.h = BIG_HEIGHT; if (this.morphDir === 2) this.fire = true; }   // dir 2: big -> fire
+		else { this.big = false; this.fire = false; this.h = HEIGHT; this.inv = INVULN; }
 		this.morphDir = 0;
 	}
 
-	// the frame of the Mario precomp to show: small 0-8, big +F_MARIO_BIG, F_MARIO_DUCK while ducking, F_MARIO_MID during a size change
+	// the frame of the Mario precomp to show: small 0-8, big +F_MARIO_BIG, F_MARIO_MID during a size change
 	sprite() {
 		const r = this.spriteRaw();
 		return isFinite(r) ? r : 0;
 	}
 
+	// which part of the grow / shrink flicker we are in: 0 small, 1 in-between, 2 big
+	morphK() { return [0, 1, 2, 1][(Math.floor(this.morphT / MORPH_STEP) + (this.morphDir > 0 ? 0 : 2)) % 4]; }
+
+	// the boolean for the fire recolour effect on the Mario layer: true while Mario should be drawn in fire colours.
+	// fire Mario uses the plain big frames. While he picks up the flower the colour flickers normal <-> fire, and while he shrinks only the big frames keep it
+	fireLook() {
+		if (this.dying) return false;
+		if (this.morph > 0) {
+			if (this.morphDir === 2) return Math.floor(this.morphT / MORPH_STEP) % 2 === 1;
+			return this.fire && this.morphK() === 2;
+		}
+		return this.fire;
+	}
+
 	spriteRaw() {
 		if (this.dying) return 6;
 		if (this.morph > 0) {
-			const k = [0, 1, 2, 1][(Math.floor(this.morphT / MORPH_STEP) + (this.morphDir > 0 ? 0 : 2)) % 4];   // small, mid, big, mid
+			if (this.morphDir === 2) return F_MARIO_BIG + this.frame;   // getting the flower: stays big, only the colour flickers (see fireLook)
+			const k = this.morphK();                                    // small, mid, big, mid
 			return k === 1 ? F_MARIO_MID : (k === 2 ? F_MARIO_BIG + this.frame : this.frame);
 		}
-		if (this.big && this.ducking) return F_MARIO_DUCK;
 		return this.big ? F_MARIO_BIG + this.frame : this.frame;
 	}
 
@@ -632,7 +724,7 @@ class Mario {
 	// start the death animation (goomba / timeout): world freezes, Mario pauses, hops up, falls off the screen
 	startDeath() {
 		this.dying = true; this.deathT = 0;
-		this.big = false; this.h = HEIGHT; this.morph = 0; this.ducking = false;   // the death sprite is always the small one
+		this.big = false; this.fire = false; this.h = HEIGHT; this.morph = 0;   // the death sprite is always the small one
 		this.vx = 0; this.vy = 0;
 	}
 
@@ -689,7 +781,7 @@ class Mario {
 		this.x = POLE_X - SLIDE_OFF;
 		this.y = Math.min(this.y, POLE_BASE);
 		this.vx = 0; this.vy = 0; this.facing = 1; this.frame = 7;
-		this.ducking = false; this.h = this.big ? BIG_HEIGHT : HEIGHT;   // grabs the pole standing up
+		this.h = this.big ? BIG_HEIGHT : HEIGHT;   // grabs the pole standing up
 		this.onGround = false; this.jumpBuf = 0; this.jumpHold = 0;
 		this.low = false;
 		$.goombas.forEach(g => { g.state = 3; });                       // enemies vanish
@@ -769,12 +861,16 @@ class Mario {
 	// returns true if a grow started
 	touchItems() {
 		for (const u of $.items) {
-			if (u.kind === COIN || u.state !== 1) continue;   // coins can't be grabbed; nothing can be grabbed while still rising
+			if (u.kind === COIN || u.kind === FIREBALL || u.state !== 1) continue;   // coins and fireballs can't be grabbed; nothing can be grabbed while still rising
 			if (Math.abs(this.x - u.x) < HW + MUSH_HW && this.y > u.y - 16 && this.y - this.h < u.y) {
 				u.state = 3;
 				if (u.kind === STAR) {
 					this.addScore(STAR_SCORE, u.x, u.y - 16);
 					this.star = STAR_TIME;
+				} else if (u.kind === FLOWER) {
+					this.addScore(MUSH_SCORE, u.x, u.y - 16);
+					if (!this.big) { this.startMorph(1); return true; }          // small Mario only grows
+					if (!this.fire) { this.startMorph(2); return true; }         // big Mario turns into fire Mario
 				} else if (u.oneup) {
 					this.addLife(u.x, u.y - 16);                   // 1-UP mushroom: extra life, no growing
 				} else {
@@ -786,7 +882,18 @@ class Mario {
 		return false;
 	}
 
-	step(dir, run, jump, duck) {
+	// throw a fireball in the facing direction. returns true when one was thrown
+	shoot() {
+		if (!this.fire || this.fireCd > 0) return false;
+		let n = 0;
+		for (const u of $.items) if (u.kind === FIREBALL && u.state === 1) n++;
+		if (n >= FIRE_MAX) return false;
+		$.items.push(Entity.makeFireball(this.x + this.facing * 8, this.y - 12, this.facing));
+		this.fireCd = FIRE_COOLDOWN;
+		return true;
+	}
+
+	step(dir, run, jump) {
 		// --- timer: 1 unit every 24 frames ---
 		if (++this.tick >= 24) {
 			this.tick = 0;
@@ -796,15 +903,10 @@ class Mario {
 		if (this.inv > 0) this.inv--;
 		if (this.star > 0) this.star--;
 		if (this.time <= 0) { this.timeUp = true; this.startDeath(); return; }   // out of time
+		if (this.fireCd > 0) this.fireCd--;
+		if (this.fireBuf > 0) { this.fireBuf--; if (this.shoot()) this.fireBuf = 0; }
 
-		// --- duck (big Mario only): hold the stick down on the ground. He can't walk while ducked, he slides to a stop,
-		// and he stays ducked while there is a low ceiling above him ---
-		if (this.big) {
-			if (duck && this.onGround) this.ducking = true;
-			else if (!duck && this.ducking && !solid(this.x - HW + 1, this.y - 20) && !solid(this.x + HW - 1, this.y - 20)) this.ducking = false;
-		} else this.ducking = false;
-		this.h = (this.big && !this.ducking) ? BIG_HEIGHT : HEIGHT;
-		if (this.ducking && this.onGround) dir = 0;
+		this.h = this.big ? BIG_HEIGHT : HEIGHT;
 
 		const maxV = run ? 2.5625 : 1.5625;
 		const accel = run ? 0.0556640625 : 0.037109375;
@@ -954,7 +1056,6 @@ const dead = thisComp.width * 0.05;
 const dir = dx > dead ? 1 : (dx < -dead ? -1 : 0);
 const run = Math.abs(dx) > thisComp.width * 0.3;
 const down = dy > thisComp.height * HOLD_DOWN;    // joystick held low in the air = jump released (heavier gravity)
-const duck = dy > thisComp.height * DUCK_DOWN;   // joystick held well below centre: big Mario ducks (on the ground)
 const jump = dy < -thisComp.height * HOLD_UP;   // joystick held up: keeps the jump going (higher hop). Starting a jump needs a flick, see below
 
 // ---------- FIXED TIMESTEP (clamped) ----------
@@ -971,14 +1072,24 @@ if (m.title === 1 && (Math.abs(dx) > START_MOVE || Math.abs(dy) > START_MOVE)) {
 
 // flick up = jump: a fast upward move of the joystick within one evaluation (only while actually playing)
 if (m.prevDy === undefined) m.prevDy = dy;
-// (coming up out of the duck zone only counts as a jump if the stick really ends above centre; just letting go of a duck must not jump)
-if (m.title === 0 && !m.dying && m.end === 0 && m.morph === 0 && dy - m.prevDy <= -FLICK_DELTA && (m.prevDy <= thisComp.height * DUCK_DOWN || jump)) {
+// (coming up from a low stick position only counts as a jump if the stick really ends above centre, so just letting go of the stick must not jump)
+// fire: a hard flick DOWN (FIRE_DELTA px in one evaluation) while fire Mario, or the rising edge of an optional "Fire" Checkbox Control on this layer
+let fireBtn = 0;
+try { fireBtn = effect("Fire")("Checkbox"); } catch (err) { fireBtn = 0; }   // no such effect: fine, the flick still works
+const playing = m.title === 0 && !m.dying && m.end === 0 && m.morph === 0;
+const fireFlick = playing && m.fire && dy - m.prevDy >= FIRE_DELTA;
+const fireTap = playing && m.fire && fireBtn == 1 && m.prevFire !== 1;
+m.prevFire = fireBtn == 1 ? 1 : 0;
+if (fireFlick || fireTap) m.fireBuf = FIRE_BUF;
+if (fireFlick) m.fireUntil = m.clock + FIRE_LOCK;     // the stick coming back up must not count as a jump
+
+if (m.title === 0 && !m.dying && m.end === 0 && m.morph === 0 && m.clock >= m.fireUntil && dy - m.prevDy <= -FLICK_DELTA && (m.prevDy <= thisComp.height * LOW_STICK || jump)) {
 	m.jumpBuf = JUMP_BUFFER;
 	m.jumpHold = FLICK_HOLD;
 	m.cut = false;                                   // a fresh jump
 }
 // flick down = let go of the jump: heavier gravity for the rest of this airtime, so the hop is cut short
-if (m.title === 0 && !m.dying && m.end === 0 && m.morph === 0 && dy - m.prevDy >= FLICK_DELTA) {
+if (m.title === 0 && !m.dying && m.end === 0 && m.morph === 0 && !fireFlick && dy - m.prevDy >= FLICK_DELTA) {
 	m.cut = true;
 	m.jumpHold = 0;
 }
@@ -1004,7 +1115,7 @@ while (m.acc >= STEP && steps < 3) {     // hard limit per evaluation
 		} else {
 			if (m.jumpHold > 0) m.jumpHold--;
 			if (m.onGround) m.cut = false;               // cut only lasts for one airtime
-			m.step(dir, run, (m.jumpHold > 0 || (jump && !down)) && !m.cut, duck);   // a flick holds the jump wherever the stick is
+			m.step(dir, run, (m.jumpHold > 0 || (jump && !down)) && !m.cut);   // a flick holds the jump wherever the stick is
 			tickEntities(m);
 			tickPopups();
 		}
@@ -1025,6 +1136,7 @@ const mv = $.items.filter(inView);               // items (mushrooms, stars, coi
 $.visEntities = BEHIND_HIGH_INDEX ? [...ve, ...mv] : [...mv, ...ve];
 $.visEntities.forEach(en => en.refresh());
 m.spr = m.sprite();                              // frame for the Mario layer's time remap
+m.fx = m.fireLook();                             // fire-colour boolean for the recolour effect
 
 value;
 
@@ -1036,12 +1148,17 @@ $.mario && $.mario.star > 0 ? ($.mario.star * 24) % 360 : 0;
 
 // MARIO LAYER SETUP: the Mario precomp is 16x32 (layer anchor [8, 32] = his feet). Small Mario is drawn in the BOTTOM 16 px.
 // MARIO TIME REMAP (small: 0 idle, 1-3 walk, 4 skid, 5 jump, 6 death, 7-8 flagpole climb
-//                   big:   9 idle, 10-12 walk, 13 skid, 14 jump, 16-17 flagpole climb, 18 duck (bottom 16 px)
-//                   15 = in-between size, shown while growing / shrinking)
+//                   big:   9 idle, 10-12 walk, 13 skid, 14 jump, 16-17 flagpole climb
+//                   15 = in-between size, shown while growing / shrinking
+//                   fire Mario uses the big frames too: recolour him with the MARIO FIRE COLOUR boolean below)
 // guarded: $.mario can be missing, stale (old VERSION without .spr) or not evaluated yet, so force a finite number
 let f = 0;
 if ($.mario && $.mario.spr !== undefined && $.mario.spr !== null) { f = Number($.mario.spr); if (!isFinite(f)) f = 0; }
 framesToTime(f);
+
+// MARIO FIRE COLOUR: drive an AE effect on the Mario layer with this (e.g. the Amount / Intensity of a Tint, Colorama or Hue/Saturation, or a Checkbox
+// that switches it on). 1 = fire Mario colours, 0 = normal. It flickers while he picks up the flower, so the freeze shows normal <-> fire
+($.mario && $.mario.fx) ? 1 : 0;
 
 // MARIO SCALE (flips horizontally with facing)
 $.mario ? [$.mario.facing * 100, 100] : [100, 100];
@@ -1069,7 +1186,7 @@ const BASE_X = 1792, BASE_Y = 120;
 $.mario ? [BASE_X - $.mario.camX, BASE_Y] : value;
 
 // ENTITY LAYERS: 30 duplicates (ENTITY_POOL) of ONE 16x16 precomp named "Entity 1" ... "Entity 30", anchor [8, 8]
-// precomp frames: 0 brick, 1 ? block, 2 used block, 3-4 goomba walk cycle, 5 goomba squished, 6 flagpole flag, 7 mushroom, 17 green 1-UP mushroom,
+// precomp frames: 0 brick, 1 ? block, 2 used block, 3-4 goomba walk cycle, 5 goomba squished, 6 flagpole flag, 7 mushroom, 17 green 1-UP mushroom, 18-19 fire flower, 20 fireball, 21 fireball explosion,
 // 8-9 ? block shades (frame 1 = bright, 8 = mid, 9 = dark), 10-13 coin spin, 14-15 star
 // Mushrooms, stars and coin pops take the lowest entity numbers (BEHIND_HIGH_INDEX = false), so "Entity 1" must sit at the BOTTOM of the entity layers
 // (Entity 30 at the top), otherwise a rising mushroom would be drawn in front of its block.
@@ -1090,9 +1207,14 @@ framesToTime(f);
 const e = ($.slots && $.visEntities) ? $.visEntities[$.slots[thisLayer.name]] : null;
 e ? 100 : 0;
 
-// ENTITY SCALE (flips upside down when a goomba is knocked off a block)
+// ENTITY SCALE (flips upside down when a goomba is knocked off a block; a fireball explosion scales the layer up)
 const e = ($.slots && $.visEntities) ? $.visEntities[$.slots[thisLayer.name]] : null;
-(e && e.flip) ? [100, -100] : [100, 100];
+const sc = (e && isFinite(e.scl)) ? e.scl : 100;
+(e && e.flip) ? [sc, -sc] : [sc, sc];
+
+// ENTITY ROTATION (a flying fireball spins; every other entity stays at 0). Paste onto every entity layer
+const e = ($.slots && $.visEntities) ? $.visEntities[$.slots[thisLayer.name]] : null;
+(e && isFinite(e.rot)) ? e.rot : 0;
 
 // TITLE SCREEN: a black solid named "Title Black", ABOVE the gameplay layers but BELOW the HUD text layers
 
