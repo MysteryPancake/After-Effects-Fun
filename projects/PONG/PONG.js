@@ -1,4 +1,4 @@
-/* This code uses my original variable leaking technique.
+/* This code uses the global debug object technique. I also added delta time and an FPS counter for time consistent gameplay.
 
 EXPLOIT 1: VARIABLE LEAKING
 
@@ -87,26 +87,11 @@ Author: MysteryPancake */
 
 // BALL
 
-const speed = 16;
-
-const encodeNumber = function(num) {
-	// Replace . with D (for decimal) and - with M (for minus)
-	return num.toString().replace(".", "D").replace("-", "M");
-};
-
-const decodeNumber = function(str) {
-	// Reverse the previous function
-	return parseFloat(str.replace("M", "-").replace("D", "."));
-};
-
-const writeVal = function(x, y, vx, vy, scoreLeft, scoreRight, paddlePos) {
-	// Write a global variable with the prefix "leak_".
-	// For example, a variable might be named "leak_3_5_M40D5_20D7_4_2_49".
-	eval(`var leak_${encodeNumber(x)}_${encodeNumber(y)}_${encodeNumber(vx)}_${encodeNumber(vy)}_${encodeNumber(scoreLeft)}_${encodeNumber(scoreRight)}_${paddlePos};`);
-};
-
+const speed = 6;
+const maxDt = 0.1;
+const refFrame = 1 / 60;
+const getTime = function() { return Date.now() / 1000; };
 const insidePaddle = function(paddle, x, y, midPoint) {
-	// Check whether something intersects the bounding box of the paddle
 	const midWidth = paddle.width * 0.5;
 	const midHeight = paddle.height * 0.5;
 	const insideLeft = paddle.position[0] - midWidth - midPoint;
@@ -119,26 +104,19 @@ const insidePaddle = function(paddle, x, y, midPoint) {
 		return false;
 	}
 };
-
-// Read all global variables
-const arr = Object.keys(this);
-// Find the most recently stored variable
-const last = arr[arr.length - 1];
-
-// Only consider variables with our prefix
-if (last.startsWith("leak_")) {
-
-	// Split apart variable name to retrieve values
-	const parts = last.slice(5).split("_");
-
-	let vx = decodeNumber(parts[2]);
-	let vy = decodeNumber(parts[3]);
-	let x = decodeNumber(parts[0]) + vx;
-	let y = decodeNumber(parts[1]) + vy;
-	let scoreLeft = decodeNumber(parts[4]);
-	let scoreRight = decodeNumber(parts[5]);
+if ($.pong) {
+	const state = $.pong;
+	let vx = state.vx;
+	let vy = state.vy;
+	const now = getTime();
+	let dt = now - state.ballTime;
+	if (!(dt > 0 && dt <= maxDt)) dt = refFrame;
+	const step = dt / refFrame;
+	let x = state.x + vx * step;
+	let y = state.y + vy * step;
+	let scoreLeft = state.scoreLeft;
+	let scoreRight = state.scoreRight;
 	const midPoint = thisLayer.height * 0.5;
-
 	// PADDLE COLLISION
 	const insideRight = insidePaddle(thisComp.layer("Right Paddle"), x, y, midPoint);
 	const insideLeft = insidePaddle(thisComp.layer("Left Paddle"), x, y, midPoint);
@@ -173,11 +151,27 @@ if (last.startsWith("leak_")) {
 		vy = -vy;
 	}
 	// FINAL OUTPUT
-	writeVal(x, y, vx, vy, scoreLeft, scoreRight, parts[6]);
+	state.x = x;
+	state.y = y;
+	state.vx = vx;
+	state.vy = vy;
+	state.scoreLeft = scoreLeft;
+	state.scoreRight = scoreRight;
+	state.ballTime = now;
 	[x, y];
 } else {
 	const original = valueAtTime(0);
-	writeVal(original[0], original[1], -speed, random(-speed, speed), 0, 0, thisComp.height * 0.5);
+	$.pong = {
+		x: original[0],
+		y: original[1],
+		vx: -speed,
+		vy: random(-speed, speed),
+		scoreLeft: 0,
+		scoreRight: 0,
+		paddlePos: thisComp.height * 0.5,
+		ballTime: getTime(),
+		paddleTime: 0
+	};
 	original;
 }
 
@@ -188,94 +182,70 @@ if (last.startsWith("leak_")) {
 // RIGHT PADDLE
 
 const speed = 10;
-
-const encodeNumber = function(num) {
-	// Replace . with D (for decimal) and - with M (for minus)
-	return num.toString().replace(".", "D").replace("-", "M");
-};
-
-const decodeNumber = function(str) {
-	// Reverse the previous function
-	return parseFloat(str.replace("M", "-").replace("D", "."));
-};
-
-const writeVal = function(x, y, vx, vy, scoreLeft, scoreRight, paddlePos) {
-	// Write a global variable with the prefix "leak_".
-	// For example, a variable might be named "leak_3_5_M40D5_20D7_4_2_49".
-	eval(`var leak_${x}_${y}_${vx}_${vy}_${scoreLeft}_${scoreRight}_${encodeNumber(paddlePos)};`);
-};
-
+const maxDt = 0.1;
+const refFrame = 1 / 60;
+const getTime = function() { return Date.now() / 1000; };
 let pos = thisComp.height * 0.5;
-
-// Read all global variables
-const arr = Object.keys(this);
-// Find the most recently stored variable
-const last = arr[arr.length - 1];
-
-// Only consider variables with our prefix
-if (last.startsWith("leak_")) {
-
-	// Split apart variable name to retrieve values
-	const parts = last.slice(5).split("_");
-
-	pos = decodeNumber(parts[6]);
-	const ballY = decodeNumber(parts[1]);
-
+if ($.pong) {
+	const state = $.pong;
+	const now = getTime();
+	let dt = now - state.paddleTime;
+	if (!(dt > 0 && dt <= maxDt)) dt = refFrame;
+	const move = speed * (dt / refFrame);
+	pos = state.paddlePos;
+	const ballY = state.y;
 	if (pos < ballY) {
-		pos += speed;
+		pos += move;
 		if (pos > ballY) {
 			pos = ballY;
 		}
 	} else {
-		pos -= speed;
+		pos -= move;
 		if (pos < ballY) {
 			pos = ballY;
 		}
 	}
-	writeVal(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], pos);
+	state.paddlePos = pos;
+	state.paddleTime = now;
 }
 [thisComp.width - 64, pos];
 
 // LEFT SCORE
 
-const decodeNumber = function(str) {
-	// Replace M with - and D with . to retrieve the original number
-	return parseFloat(str.replace("M", "-").replace("D", "."));
-};
-
 let score = 0;
-
-// Read all global variables
-const arr = Object.keys(this);
-// Find the most recently stored variable
-const last = arr[arr.length - 1];
-
-// Only consider variables with our prefix
-if (last.startsWith("leak_")) {
-	// Split apart variable name to retrieve values
-	const parts = last.slice(5).split("_");
-	score = decodeNumber(parts[4]);
+if ($.pong) {
+	score = $.pong.scoreLeft;
 }
 score;
 
 // RIGHT SCORE
 
-const decodeNumber = function(str) {
-	// Replace M with - and D with . to retrieve the original number
-	return parseFloat(str.replace("M", "-").replace("D", "."));
-};
-
 let score = 0;
-
-// Read all global variables
-const arr = Object.keys(this);
-// Find the most recently stored variable
-const last = arr[arr.length - 1];
-
-// Only consider variables with our prefix
-if (last.startsWith("leak_")) {
-	// Split apart variable name to retrieve values
-	const parts = last.slice(5).split("_");
-	score = decodeNumber(parts[5]);
+if ($.pong) {
+	score = $.pong.scoreRight;
 }
 score;
+
+// FPS
+
+const getTime = function() { return Date.now() / 1000; };
+const now = getTime();
+const interval = 0.5;
+let fps = 0;
+if ($.pong) {
+	if ($.pong.fpsTime) {
+		$.pong.fpsFrames++;
+		const elapsed = now - $.pong.fpsTime;
+		if (elapsed >= interval) {
+			$.pong.fpsValue = $.pong.fpsFrames / elapsed;
+			$.pong.fpsFrames = 0;
+			$.pong.fpsTime = now;
+		}
+	} else {
+		$.pong.fpsTime = now;
+		$.pong.fpsFrames = 0;
+		$.pong.fpsValue = 0;
+	}
+	fps = $.pong.fpsValue;
+}
+`${Math.round(fps)} FPS`;
