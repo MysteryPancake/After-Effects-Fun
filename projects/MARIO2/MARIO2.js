@@ -8,7 +8,7 @@ const MIDWAY_COL = 96;                 // tile column of the midway checkpoint: 
 const RESPAWN_SAFE = 96;               // goombas within this many px ahead of the respawn point are removed, so you never respawn on top of one
 const SCREEN_MID = 112, LEFT_PAD = 8;  // screen x where Mario is kept while the camera scrolls; minimum distance from the left screen edge
 const X_GAIN = 2;                      // joystick x sensitivity: 2 = half the stick travel is needed to walk / run
-const VERSION = 1;                     // changing this value reinitialises the stored game state
+const VERSION = 39;                     // changing this value reinitialises the stored game state
 
 const TILE = 16, TOP = 32, ROWS = 13;
 const W = 224;                         // 3584 px BG / 16 = 224 tiles
@@ -35,7 +35,7 @@ const FIRE_MAX = 2;                    // fireballs alive at once
 const FIRE_COOLDOWN = 8;               // minimum steps between two throws
 const FIRE_SPEED = 3, FIRE_BOUNCE = -3.2;   // horizontal px per step, and the upward speed of every bounce (gravity is GRAVITY)
 const FIRE_HW = 4;                     // fireball half-width (hitbox); the ball itself is 8x8, centred in its 16x16 sprite frame
-const FIRE_SPIN = 30;                  // degrees per step the fireball's entity layer rotates (positive = clockwise, flips with the throwing direction)
+const FIRE_FRAMES = 4, FIRE_ANIM = 2;  // fireball spin sprites (frames 20-23) and steps per sprite; the order reverses when it is thrown left
 const FIRE_BURST_TIME = 9, FIRE_BURST_SCALE = 250;   // explosion: steps it lasts, and the % the entity layer scales up to over that time
 const FLOWER_ANIM = 8;                 // steps per fire flower frame (2 frames)
 const BEHIND_HIGH_INDEX = false;       // which entity layers the mushrooms, stars and coin pops use, so they can rise out from BEHIND the block.
@@ -109,6 +109,16 @@ const KNOCK_VX = 0.5, KNOCK_VY = -3;   // goomba knocked off a bumped block: sid
 const GOOMBA_Y = 208;                  // feet on top of the ground
 const GOOMBA_COLS = [22, 40, 51, 53, 80, 82, 97, 99, 114, 116, 124, 126, 128, 130, 174, 176];   // tile columns (approximate 1-1 layout)
 const ACTIVATE = thisComp.width + 16;   // goombas start walking when this close to the right screen edge
+// ---------- KOOPA (a single koopa troopa + its shell, drawn by ONE layer named "Koopa", not by the Entity pool) ----------
+// "Koopa" layer: a 16x24 precomp, layer anchor [8, 24] (= his feet, bottom-centre). Frames: 0-1 walk cycle (draw him facing LEFT, the layer flips him), 2 shell (drawn in the BOTTOM 16 px).
+const KOOPA_COL = 107;                 // tile column he starts on (approximate 1-1 position)
+const KOOPA_H = 24, SHELL_H = 16, KHW = 6;   // hitbox heights (walking / shell) and half-width
+const KOOPA_SPEED = 0.5;               // px per step walking (same as a goomba)
+const KOOPA_ANIM = 10;                 // steps per walk frame (2 frames)
+const SHELL_SPEED = 3;                 // px per step a kicked shell slides
+const SHELL_GRACE = 12;                // steps after a stomp / kick during which Mario can't touch the koopa (so a kick never hurts the kicker)
+const KICK_SCORE = 400, SHELL_KILL_SCORE = 500, KOOPA_KO_SCORE = 200;   // kicking a shell, a sliding shell knocking a goomba off, fireball / starman / block bump killing the koopa
+const F_KOOPA = 0, F_KSHELL = 2;       // Koopa precomp frames: walk cycle starts at 0, shell
 const ENTITY_POOL = 30;                // number of "Entity N" sprite layers
 
 // ---------- LEVEL 1-1 ----------
@@ -209,15 +219,15 @@ function fallY(o, hw) {
 //   t     BLOCK: bump timer.  GOOMBA: squish timer
 //   off   upward bump offset in px (blocks only, 0 otherwise)
 //   frame / flip   what the sprite layer should show, filled in by refresh()
-const BLOCK = 0, GOOMBA = 1, FLAG = 2, MUSHROOM = 3, COIN = 4, STAR = 5, CFLAG = 6, FLOWER = 7, FIREBALL = 8;   // FLOWER: fire flower (rises, then stays put).  FIREBALL: state 1 = flying, 2 = exploding, 3 = gone.  CFLAG: the flag that rises on the castle (state 0 = hidden, waiting for Mario to enter the door, 1 = rising / raised)
+const BLOCK = 0, GOOMBA = 1, FLAG = 2, MUSHROOM = 3, COIN = 4, STAR = 5, CFLAG = 6, FLOWER = 7, FIREBALL = 8, KOOPA = 9;   // KOOPA states: 0 = waiting offscreen, 1 = walking, 2 = shell (still), 3 = gone, 4 = knocked off (flips and falls), 5 = shell sliding.   // FLOWER: fire flower (rises, then stays put).  FIREBALL: state 1 = flying, 2 = exploding, 3 = gone.  CFLAG: the flag that rises on the castle (state 0 = hidden, waiting for Mario to enter the door, 1 = rising / raised)
 // frames of the single sprite precomp (comp frame numbers, 0-based)
 const F_BRICK = 0, F_QUESTION = 1, F_USED = 2, F_GOOMBA = 3 /* 3 and 4 = walk cycle */, F_SQUISH = 5, F_FLAG = 6, F_MUSHROOM = 7,
     F_QUESTION2 = 8, F_QUESTION3 = 9 /* ? flicker shades */, F_COIN = 10 /* 10-13 spin */, F_STAR = 14 /* 14-15 */,
     F_CFLAG = 16,                    // castle flag: add this frame to the Entity precomp
     F_1UP = 17,                      // green 1-UP mushroom (from the hidden block): add this frame to the Entity precomp
     F_FLOWER = 18 /* 18-19 */,       // fire flower, 2 frames
-    F_FIREBALL = 20,                 // fireball: ONE frame (8x8 ball centred in the 16x16 frame). The layer rotates it while it flies
-    F_FIREBURST = 21;                // fireball explosion: ONE frame. The layer scales it up while it lasts
+    F_FIREBALL = 20 /* 20-23 */,     // fireball spin: 4 sprites (8x8 ball centred in the 16x16 frame)
+    F_FIREBURST = 24;                // fireball explosion: ONE frame. The layer scales it up while it lasts
 
 // the shade of an unused ? block right now: bright (held), then mid, dark, mid, driven by Mario's step clock.
 // computed once per evaluation into $.qf, which every ? block reads
@@ -236,7 +246,7 @@ class Entity {
 		this.vx = 0; this.vy = 0;
 		this.state = 1; this.t = 0; this.anim = 0; this.off = 0;
 		this.frame = 0; this.flip = false;
-		this.rot = 0; this.scl = 100; this.dir = 1;         // layer rotation (deg) and scale (%) for the sprite layer, and a fireball's throwing direction
+		this.scl = 100; this.dir = 1;                    // layer scale (%) for the sprite layer, and the facing / throwing direction (fireball, koopa)
 		this.oneup = false;                              // MUSHROOM only: true = green 1-UP mushroom (gives a life instead of growing)
 		// block-only fields
 		this.c = 0; this.r = 0; this.type = ""; this.content = ""; this.coins = 0; this.mt = 0; this.used = false; this.revealed = true; this.gone = false; this.active = false;
@@ -287,6 +297,12 @@ class Entity {
 		return e;
 	}
 
+	static makeKoopa(col) {
+		const e = new Entity(KOOPA, col * TILE + TILE / 2, GOOMBA_Y);
+		e.vx = -KOOPA_SPEED; e.state = 0; e.dir = -1;
+		return e;
+	}
+
 	static makeGoomba(col) {
 		const e = new Entity(GOOMBA, col * TILE + TILE / 2, GOOMBA_Y);
 		e.vx = -GOOMBA_SPEED; e.state = 0;
@@ -316,7 +332,8 @@ class Entity {
 		} else if (this.kind === FLOWER) {
 			this.frame = F_FLOWER + Math.floor(this.anim / FLOWER_ANIM) % 2; this.flip = false;
 		} else if (this.kind === FIREBALL) {
-			this.frame = this.state === 2 ? F_FIREBURST : F_FIREBALL;
+			const spin = Math.floor(this.anim / FIRE_ANIM) % FIRE_FRAMES;
+			this.frame = this.state === 2 ? F_FIREBURST : F_FIREBALL + (this.dir >= 0 ? spin : FIRE_FRAMES - 1 - spin);
 			if (this.state === 2) this.scl = 100 + (FIRE_BURST_SCALE - 100) * Math.min(1, this.anim / FIRE_BURST_TIME);   // explosion = the ball growing
 			this.flip = false;
 		} else if (this.kind === STAR) {
@@ -334,7 +351,7 @@ class Entity {
 
 	// advance one physics step
 	tick(m) {
-		if (this.kind === GOOMBA) this.tickGoomba(m); else if (this.kind === MUSHROOM || this.kind === STAR || this.kind === FLOWER) this.tickPowerup(m); else if (this.kind === FIREBALL) this.tickFireball(m); else if (this.kind === COIN) this.tickCoin(); else if (this.kind === CFLAG) this.tickCastleFlag(m);
+		if (this.kind === GOOMBA) this.tickGoomba(m); else if (this.kind === MUSHROOM || this.kind === STAR || this.kind === FLOWER) this.tickPowerup(m); else if (this.kind === FIREBALL) this.tickFireball(m); else if (this.kind === KOOPA) this.tickKoopa(m); else if (this.kind === COIN) this.tickCoin(); else if (this.kind === CFLAG) this.tickCastleFlag(m);
 	}
 
 	// castle flag: appears and rises as soon as Mario has walked into the castle door (ending step 4 onwards)
@@ -422,7 +439,7 @@ class Entity {
 
 	// fireball: flies straight, bounces along the ground, explodes on walls / ceilings and kills goombas
 	explode() {
-		this.state = 2; this.anim = 0; this.vx = 0; this.vy = 0; this.rot = 0;   // the explosion frame is not rotated
+		this.state = 2; this.anim = 0; this.vx = 0; this.vy = 0;
 	}
 
 	tickFireball(m) {
@@ -433,7 +450,6 @@ class Entity {
 			return;
 		}
 		if (f.state !== 1) return;
-		f.rot += f.dir * FIRE_SPIN;                      // spin (the layer's Rotation reads this)
 
 		f.x += f.vx;
 		if (solid(f.x + (f.vx < 0 ? -FIRE_HW : FIRE_HW), f.y - 4)) { f.explode(); return; }   // hit a wall / pipe / block side
@@ -459,8 +475,68 @@ class Entity {
 			}
 		}
 
+		const k = $.koopa;                               // burn the koopa (only while he is walking)
+		if (k && k.state === 1 && Math.abs(k.x - f.x) < KHW + FIRE_HW && (f.y - 4) > k.y - KOOPA_H && (f.y - 4) < k.y) {
+			k.knockKoopa(m, f.x, KOOPA_KO_SCORE);
+			f.explode();
+			return;
+		}
+
 		if (f.y > TOP + ROWS * TILE + 16) f.state = 3;                   // fell in a pit
 		if (f.x < m.camX - 32 || f.x > m.camX + ACTIVATE + 16) f.state = 3;   // left the screen
+	}
+
+	// the koopa knocked off the screen (starman, fireball, bumped block): flips and falls away like a goomba
+	knockKoopa(m, fromX, score) {
+		this.state = 4;
+		this.vy = KNOCK_VY;
+		this.vx = (this.x >= fromX ? 1 : -1) * KNOCK_VX;
+		m.addScore(score, this.x, this.y - KOOPA_H);
+	}
+
+	// sprite layer values for the "Koopa" layer (read by its expressions)
+	refreshKoopa() {
+		const k = this;
+		k.vis = k.state === 1 || k.state === 2 || k.state === 4 || k.state === 5;
+		k.frame = k.state === 1 ? F_KOOPA + Math.floor(k.anim / KOOPA_ANIM) % 2 : F_KSHELL;
+		k.flip = k.state === 4;
+		k.off = k.state === 4 ? SHELL_H : 0;             // a flipped shell hangs below the anchor, so the layer is lifted by its height
+	}
+
+	tickKoopa(m) {
+		const k = this;
+		if (k.state === 0) {
+			if (k.x < m.camX + ACTIVATE) k.state = 1;
+			return;
+		}
+		if (k.state === 3) return;
+		if (k.t > 0) k.t--;
+		if (k.state === 4) {                             // knocked off: no collision, just falls away
+			k.x += k.vx;
+			k.y += k.vy;
+			k.vy = Math.min(k.vy + GRAVITY, TERMINAL_VY);
+			if (k.y > TOP + ROWS * TILE + KOOPA_H * 2) k.state = 3;
+			return;
+		}
+		if (k.state === 1) {                             // walking: turns at walls, walks off ledges like a goomba
+			k.anim++;
+			walkX(k, KHW);
+			k.dir = k.vx > 0 ? 1 : -1;
+		} else if (k.state === 5) {                      // sliding shell: bounces off walls and knocks goombas off
+			walkX(k, KHW);
+			for (const g of $.goombas) {
+				if (g.state !== 1) continue;
+				if (Math.abs(g.x - k.x) < GHW + KHW && g.y > k.y - SHELL_H && g.y - GH < k.y) {
+					g.state = 4;
+					g.vy = KNOCK_VY;
+					g.vx = (k.vx >= 0 ? 1 : -1) * KNOCK_VX;
+					m.addScore(SHELL_KILL_SCORE, g.x, g.y - GH);
+				}
+			}
+		}
+		fallY(k, KHW);                                   // gravity for every non-knocked state
+		if (k.y > TOP + ROWS * TILE + KOOPA_H) k.state = 3;   // fell in a pit
+		if (k.x < m.camX - 32) k.state = 3;              // left behind
 	}
 
 	// coin popping out of a block
@@ -505,6 +581,7 @@ function loadWorld() {
 	$.walkers = [];
 	$.qf = F_QUESTION;
 	$.goombas = goombas;
+	$.koopa = Entity.makeKoopa(KOOPA_COL);       // the single koopa: not part of $.entities, so he never takes an Entity layer
 	$.flag = Entity.makeFlag();
 	$.cflag = Entity.makeCastleFlag();
 	$.entities = [...goombas, $.flag, $.cflag];
@@ -538,6 +615,8 @@ function bumpKill(m, b) {
 			m.addScore(GOOMBA_SCORE, g.x, g.y - GH);
 		}
 	}
+	const k = $.koopa;                           // the koopa (walking or a shell) standing on the block gets knocked off too
+	if (k && (k.state === 1 || k.state === 2 || k.state === 5) && Math.abs(k.y - top) < 2 && Math.abs(k.x - b.x) < TILE / 2 + KHW) k.knockKoopa(m, m.x, KOOPA_KO_SCORE);
 	for (const u of $.items) {                   // a mushroom standing on the block hops and runs away from Mario
 		if (u.kind !== MUSHROOM || u.state !== 1) continue;
 		if (Math.abs(u.y - top) < 2 && Math.abs(u.x - b.x) < TILE / 2 + MUSH_HW) {
@@ -596,6 +675,7 @@ function tickEntities(m) {
 	}
 	$.walkers = $.goombas.filter(g => g.state === 1);
 	$.entities.forEach(e => e.tick(m));
+	$.koopa.tick(m);
 	$.items.forEach(u => u.tick(m));
 	$.items = $.items.filter(u => u.state !== 3);    // drop collected, fallen and left-behind items
 }
@@ -753,6 +833,7 @@ class Mario {
 		if (over) this.newGame();                        // game over: back to the very start
 		loadWorld();                                     // restore used / broken blocks and respawn goombas
 		this.reset();
+		if ($.koopa.x < this.x + RESPAWN_SAFE) $.koopa.state = 3;
 		for (const g of $.goombas) if (g.x < this.x + RESPAWN_SAFE) g.state = 3;   // goombas behind the camera or too close to the respawn point are gone
 		this.title = 2;                                  // black screen for a moment, then play resumes
 		if (over) { this.titleMsg = MSG_OVER; this.titleT = TITLE_TIME; }
@@ -785,6 +866,7 @@ class Mario {
 		this.onGround = false; this.jumpBuf = 0; this.jumpHold = 0;
 		this.low = false;
 		$.goombas.forEach(g => { g.state = 3; });                       // enemies vanish
+		$.koopa.state = 3;
 		this.addScore(FLAG_SCORES[idx], POLE_X + 14, this.y - this.h);
 	}
 
@@ -828,6 +910,29 @@ class Mario {
 		loadWorld();
 		this.reset();
 		this.title = 2; this.titleMsg = MSG_WIN; this.titleT = TITLE_TIME;
+	}
+
+	// the koopa: stomp a walker = shell, stomp or touch a still shell = kick it, stomp a sliding shell = stop it, any other touch of a walker / sliding shell hurts.
+	// returns true if Mario was hurt
+	touchKoopa() {
+		const k = $.koopa;
+		if (this.inv > 0 || k.t > 0 || (k.state !== 1 && k.state !== 2 && k.state !== 5)) return false;
+		const kh = k.state === 1 ? KOOPA_H : SHELL_H;
+		if (!(Math.abs(this.x - k.x) < HW + KHW && this.y > k.y - kh && this.y - this.h < k.y)) return false;
+		if (this.star > 0) { k.knockKoopa(this, this.x, KOOPA_KO_SCORE); return false; }   // starman
+		const bounce = () => { this.vy = -4; this.holdG = 0.125; this.fallG = 0.4375; this.g = this.holdG; this.onGround = false; };
+		const kick = () => { k.state = 5; k.vx = (k.x >= this.x ? 1 : -1) * SHELL_SPEED; k.t = SHELL_GRACE; this.addScore(KICK_SCORE, k.x, k.y - SHELL_H); };
+		if (this.vy > 0 && this.y < k.y - kh + 10) {                       // stomped
+			if (k.state === 2) { kick(); bounce(); return false; }          // a still shell is kicked away
+			const n = this.stomp++;                                          // walker -> shell, sliding shell -> still: same chain as goombas
+			if (n < STOMP_SCORES.length) this.addScore(STOMP_SCORES[n], k.x, k.y - kh); else this.addLife(k.x, k.y - kh);
+			k.state = 2; k.vx = 0; k.t = SHELL_GRACE;
+			bounce();
+			return false;
+		}
+		if (k.state === 2) { kick(); return false; }                        // touched a still shell from the side: kicked, nobody is hurt
+		this.hurt();                                                         // walker or sliding shell from the side
+		return true;
 	}
 
 	// stomp from above = squish + bounce; any other contact = hurt (big: shrink, small: die). returns true if Mario was hurt
@@ -1028,6 +1133,7 @@ class Mario {
 
 		if (this.y > TOP + ROWS * TILE + this.h) { this.die(); return; }   // fell in a pit
 		if (this.touchGoombas()) return;                                   // stomped, or hurt by a goomba (big: shrink, small: die)
+		if (this.touchKoopa()) return;                                     // stomped / kicked, or hurt by the koopa or a sliding shell
 		if (this.touchItems()) return;                                     // grabbed a mushroom while small: grow
 
 		if (this.x >= MIDWAY_COL * TILE) this.checkpoint = true;           // passed the midway point
@@ -1041,7 +1147,7 @@ class Mario {
 }
 
 // ---------- INIT ----------
-if ($.mario === undefined || $.mario.ver !== VERSION || $.level === undefined || $.entities === undefined || $.popups === undefined || $.flag === undefined || $.cflag === undefined || $.items === undefined) {
+if ($.mario === undefined || $.mario.ver !== VERSION || $.level === undefined || $.entities === undefined || $.popups === undefined || $.koopa === undefined || $.flag === undefined || $.cflag === undefined || $.items === undefined) {
 	loadWorld();
 	$.mario = new Mario();
 }
@@ -1135,6 +1241,7 @@ const ve = [...$.blocks.list.slice($.colStart[c0], $.colStart[c1]), ...$.entitie
 const mv = $.items.filter(inView);               // items (mushrooms, stars, coin pops), kept apart so they get the first (or last) layers
 $.visEntities = BEHIND_HIGH_INDEX ? [...ve, ...mv] : [...mv, ...ve];
 $.visEntities.forEach(en => en.refresh());
+$.koopa.refreshKoopa();                           // frame / visibility for the "Koopa" layer
 m.spr = m.sprite();                              // frame for the Mario layer's time remap
 m.fx = m.fireLook();                             // fire-colour boolean for the recolour effect
 
@@ -1186,7 +1293,7 @@ const BASE_X = 1792, BASE_Y = 120;
 $.mario ? [BASE_X - $.mario.camX, BASE_Y] : value;
 
 // ENTITY LAYERS: 30 duplicates (ENTITY_POOL) of ONE 16x16 precomp named "Entity 1" ... "Entity 30", anchor [8, 8]
-// precomp frames: 0 brick, 1 ? block, 2 used block, 3-4 goomba walk cycle, 5 goomba squished, 6 flagpole flag, 7 mushroom, 17 green 1-UP mushroom, 18-19 fire flower, 20 fireball, 21 fireball explosion,
+// precomp frames: 0 brick, 1 ? block, 2 used block, 3-4 goomba walk cycle, 5 goomba squished, 6 flagpole flag, 7 mushroom, 17 green 1-UP mushroom, 18-19 fire flower, 20-23 fireball spin, 24 fireball explosion,
 // 8-9 ? block shades (frame 1 = bright, 8 = mid, 9 = dark), 10-13 coin spin, 14-15 star
 // Mushrooms, stars and coin pops take the lowest entity numbers (BEHIND_HIGH_INDEX = false), so "Entity 1" must sit at the BOTTOM of the entity layers
 // (Entity 30 at the top), otherwise a rising mushroom would be drawn in front of its block.
@@ -1212,11 +1319,28 @@ const e = ($.slots && $.visEntities) ? $.visEntities[$.slots[thisLayer.name]] : 
 const sc = (e && isFinite(e.scl)) ? e.scl : 100;
 (e && e.flip) ? [sc, -sc] : [sc, sc];
 
-// ENTITY ROTATION (a flying fireball spins; every other entity stays at 0). Paste onto every entity layer
-const e = ($.slots && $.visEntities) ? $.visEntities[$.slots[thisLayer.name]] : null;
-(e && isFinite(e.rot)) ? e.rot : 0;
-
 // TITLE SCREEN: a black solid named "Title Black", ABOVE the gameplay layers but BELOW the HUD text layers
+
+// ---------- KOOPA LAYER ----------
+// ONE layer named "Koopa": a 16x24 precomp, layer anchor [8, 24] (his feet). Frames: 0-1 walk (drawn facing LEFT), 2 shell (bottom 16 px). Put it with the other gameplay layers, below the HUD.
+
+// KOOPA POSITION (feet; a knocked-off, flipped shell is lifted by its height)
+const k = $.koopa;
+($.mario && k && isFinite(k.x) && isFinite(k.y)) ? [k.x - $.mario.camX, k.y - (isFinite(k.off) ? k.off : 0)] : value;
+
+// KOOPA TIME REMAP
+const k = $.koopa;
+let f = 0;
+if (k && k.frame !== undefined && k.frame !== null) { f = Number(k.frame); if (!isFinite(f)) f = 0; }
+framesToTime(f);
+
+// KOOPA OPACITY (0% while he is waiting offscreen or gone)
+const k = $.koopa;
+(k && k.vis) ? 100 : 0;
+
+// KOOPA SCALE (flips horizontally with the direction he walks, upside down when knocked off)
+const k = $.koopa;
+(k && isFinite(k.dir)) ? [-k.dir * 100, k.flip ? -100 : 100] : [100, 100];
 
 // TITLE TEXT SOURCE TEXT (the label on the black screen: "Move joystick to play!" / "Game over!" / "Time up!" / "You win!" / "x lives remaining!")
 ($.mario && $.mario.titleMsg !== undefined) ? $.mario.titleMsg : "Move joystick to play!";
