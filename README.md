@@ -1,61 +1,107 @@
 # After Effects Fun
+
 Expressions, scripts and projects for Adobe After Effects.
 
 Usually created by myself or others on the [/r/AfterEffects Discord](http://discord.gg/aftereffects).
 
 ## Projects
-These were made using [custom exploits](#break)!
 
-[Playable Mario (JavaScript only)](projects/MARIO)
+These were made using [custom exploits](#global-variable-exploits)!
 
 [<img src="images/MarioDemo.gif?raw=true" width="500" alt="Mario demo">](projects/MARIO)
 
-[Playable Pong (JavaScript only)](projects/PONG)
+<table>
+  <tr>
+    <th><a href="projects/MARIO">Playable Mario (JavaScript only)</a></th>
+  </tr>
+</table>
 
 [<img src="images/PongDemo.gif?raw=true" width="500" alt="Pong demo">](https://youtu.be/3HMT1M9F5yA)
 
-[Drawing (JavaScript only)](projects/DRAW)
+<table>
+  <tr>
+    <th><a href="projects/PONG">Playable Pong (JavaScript only)</a></th>
+  </tr>
+</table>
 
 [<img src="images/DrawDemo.gif?raw=true" width="500" alt="Drawing demo">](https://youtu.be/XxiwhegTduI)
 
-## Expressions
+<table>
+  <tr>
+    <th><a href="projects/DRAW">Drawing (JavaScript only)</a></th>
+  </tr>
+</table>
 
-[Limitless linear](expressions/linear.js)
+## Expressions
 
 [<img src="images/LinearDemo.gif?raw=true" width="500" alt="Limitless linear demo">](expressions/linear.js)
 
-[Custom easings](expressions/easing2.js)
+<table>
+  <tr>
+    <th><a href="expressions/linear.js">Limitless linear</a></th>
+  </tr>
+</table>
 
 [<img src="images/EasingDemo.gif?raw=true" width="500" alt="Easings reference">](https://youtu.be/6qnkLmMJ2AE)
 [![Easings demo](https://img.youtube.com/vi/jy5WZwaGMhY/mqdefault.jpg)](https://youtu.be/jy5WZwaGMhY)
 
-[Spring easing](expressions/easing4.js)
+<table>
+  <tr>
+    <th><a href="expressions/easing2.js">Custom easings</a></th>
+  </tr>
+</table>
 
 [<img src="images/SpringDemo.gif?raw=true" width="500" alt="Spring easing demo">](expressions/easing4.js)
 
-[Path rotation](expressions/pathRotation.js)
+<table>
+  <tr>
+    <th><a href="expressions/easing4.js">Spring easing</a></th>
+  </tr>
+</table>
 
 [![Path rotation demo](https://img.youtube.com/vi/_G5AHLrX-jU/mqdefault.jpg)](https://youtu.be/_G5AHLrX-jU)
 
-[Spiral path](expressions/spiralPath.js)
+<table>
+  <tr>
+    <th><a href="expressions/pathRotation.js">Path rotation</a></th>
+  </tr>
+</table>
 
 [<img src="images/SpiralDemo.gif?raw=true" width="500" alt="Spiral path demo">](expressions/spiralPath.js)
 
-[Camera snapping](expressions/cameraSnap.js)
+<table>
+  <tr>
+    <th><a href="expressions/spiralPath.js">Spiral path</a></th>
+  </tr>
+</table>
 
 [![Camera snapping demo](https://img.youtube.com/vi/VJOOgkROCwU/mqdefault.jpg)](https://youtu.be/VJOOgkROCwU)
 
+<table>
+  <tr>
+    <th><a href="expressions/cameraSnap.js">Camera snapping</a></th>
+  </tr>
+</table>
+
 ## Tools
-[Image to expression converter](https://mysterypancake.github.io/After-Effects-Fun/tools/imagetoexpression2)
 
 [![Expression converter](https://img.youtube.com/vi/sEwBKQni7kU/mqdefault.jpg)](https://youtu.be/sEwBKQni7kU)
 [![Expression demo](https://img.youtube.com/vi/OfXQXMyMp-U/mqdefault.jpg)](https://youtu.be/OfXQXMyMp-U)
 
-[Dave drawing demo](projects/DAVE)
+<table>
+  <tr>
+    <th><a href="https://mysterypancake.github.io/After-Effects-Fun/tools/imagetoexpression2">Image to expression converter</a></th>
+  </tr>
+</table>
 
 [<img src="images/DaveDemo.gif?raw=true" width="500" alt="Dave demo">](projects/DAVE/dave.js)
 
-<a name="break"></a>
+<table>
+  <tr>
+    <th><a href="projects/DAVE">Dave drawing demo</a></th>
+  </tr>
+</table>
+
 ## Global Variable Exploits
 
 **WARNING: These are all unpredictable to work with!**
