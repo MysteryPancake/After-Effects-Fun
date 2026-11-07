@@ -6,28 +6,32 @@ Usually created by myself or others on the [/r/AfterEffects Discord](http://disc
 ## Projects
 These were made using [custom exploits](#break)!
 
+[Playable Mario (JavaScript only)](projects/MARIO)
+
+[<img src="images/MarioDemo.gif?raw=true" width="350" alt="Mario demo">](projects/MARIO)
+
 [Playable Pong (JavaScript only)](projects/PONG)
 
-[<img src="images/PongDemo.gif?raw=true" width="320" alt="Pong demo">](https://youtu.be/3HMT1M9F5yA)
+[<img src="images/PongDemo.gif?raw=true" width="350" alt="Pong demo">](https://youtu.be/3HMT1M9F5yA)
 
 [Drawing (JavaScript only)](projects/DRAW)
 
-[<img src="images/DrawDemo.gif?raw=true" width="320" alt="Drawing demo">](https://youtu.be/XxiwhegTduI)
+[<img src="images/DrawDemo.gif?raw=true" width="350" alt="Drawing demo">](https://youtu.be/XxiwhegTduI)
 
 ## Expressions
 
 [Limitless linear](expressions/linear.js)
 
-[<img src="images/LinearDemo.gif?raw=true" width="320" alt="Limitless linear demo">](expressions/linear.js)
+[<img src="images/LinearDemo.gif?raw=true" width="350" alt="Limitless linear demo">](expressions/linear.js)
 
 [Custom easings](expressions/easing2.js)
 
-[<img src="images/EasingDemo.gif?raw=true" width="320" alt="Easings reference">](https://youtu.be/6qnkLmMJ2AE)
+[<img src="images/EasingDemo.gif?raw=true" width="350" alt="Easings reference">](https://youtu.be/6qnkLmMJ2AE)
 [![Easings demo](https://img.youtube.com/vi/jy5WZwaGMhY/mqdefault.jpg)](https://youtu.be/jy5WZwaGMhY)
 
 [Spring easing](expressions/easing4.js)
 
-[<img src="images/SpringDemo.gif?raw=true" width="320" alt="Spring easing demo">](expressions/easing4.js)
+[<img src="images/SpringDemo.gif?raw=true" width="350" alt="Spring easing demo">](expressions/easing4.js)
 
 [Path rotation](expressions/pathRotation.js)
 
@@ -35,7 +39,7 @@ These were made using [custom exploits](#break)!
 
 [Spiral path](expressions/spiralPath.js)
 
-[<img src="images/SpiralDemo.gif?raw=true" width="320" alt="Spiral path demo">](expressions/spiralPath.js)
+[<img src="images/SpiralDemo.gif?raw=true" width="350" alt="Spiral path demo">](expressions/spiralPath.js)
 
 [Camera snapping](expressions/cameraSnap.js)
 
@@ -49,7 +53,7 @@ These were made using [custom exploits](#break)!
 
 [Dave drawing demo](projects/DAVE)
 
-[<img src="images/DaveDemo.gif?raw=true" width="320" alt="Dave demo">](projects/DAVE/dave.js)
+[<img src="images/DaveDemo.gif?raw=true" width="350" alt="Dave demo">](projects/DAVE/dave.js)
 
 <a name="break"></a>
 ## Global Variable Exploits
