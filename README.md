@@ -67,7 +67,7 @@ These were made using [custom exploits](#global-variable-exploits)!
   </tr>
 </table>
 
-[<img src="images/SpiralDemo.gif?raw=true" width="500" alt="Spiral path demo">](expressions/spiralPath.js)
+[<img src="images/SpiralDemo.gif?raw=true" width="350" alt="Spiral path demo">](expressions/spiralPath.js)
 
 <table>
   <tr>
