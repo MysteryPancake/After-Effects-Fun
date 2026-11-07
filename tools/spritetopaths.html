@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Sprite to After Effects paths</title>
+		<meta name="description" content="Converts pixel art sprites into After Effects shape paths.">
+		<meta property="og:title" content="Sprite to After Effects paths">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://mysterypancake.github.io/After-Effects-Fun/tools/spritetopaths">
+		<meta property="og:site_name" content="Sprite to After Effects paths">
+		<meta property="og:description" content="Converts pixel art sprites into After Effects shape paths.">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<style>
+		* {
+			color: #CCCCCC;
+			font-family: system-ui, Arial, Helvetica, sans-serif;
+		}
+
+		html, body {
+			background-color: #272727;
+		}
+
+		body {
+			margin: 16px;
+		}
+
+		[hidden] {
+			display: none !important;
+		}
+
+		canvas {
+			background: repeating-conic-gradient(#333333 0 25%, #1D1D1D 0 50%) 0 0 / 16px 16px;
+			display: block;
+			image-rendering: pixelated;
+			width: 100%;
+		}
+
+		input[type="button"], button {
+			background-color: #5C94FC;
+			border: 0;
+			border-radius: 4px;
+			color: #0B1020;
+			cursor: pointer;
+			font-size: medium;
+			font-weight: bold;
+			padding: 9px 16px;
+		}
+
+		input[type="button"]:focus-visible {
+			outline: 2px solid #FFFFFF;
+			outline-offset: 2px;
+		}
+
+		.half {
+			box-sizing: border-box;
+			display: inline-block;
+			float: left;
+			padding-right: 16px;
+			width: 50%;
+		}
+
+		.clear {
+			clear: both;
+		}
+
+		.stats {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px 26px;
+			margin: 0;
+		}
+
+		.stats div {
+			min-width: 90px;
+		}
+
+		.stats dt {
+			color: #8A95A6;
+			font-size: 12px;
+		}
+
+		.stats dd {
+			font-family: "Courier New", monospace;
+			font-size: 20px;
+			font-weight: bold;
+			margin: 0;
+		}
+
+		.ok {
+			color: #7EE2A0;
+		}
+
+		.bad {
+			color: #FF8A8A;
+		}
+
+		@media (max-width: 700px) {
+			.half {
+				padding-right: 0;
+				width: 100%;
+			}
+		}
+		</style>
+	</head>
+	<body>
+		<h1>Sprite to After Effects paths</h1>
+		<p>Converts an image to After Effects paths. This is designed for pixel art, not full images.</p>
+		<input id="file" type="file" accept="image/*">
+		<div id="results" hidden>
+			<div>
+				<div class="half">
+					<h2>Source image</h2>
+					<canvas id="src"></canvas>
+				</div>
+				<div class="half">
+					<h2>Rebuilt from paths</h2>
+					<canvas id="out"></canvas>
+				</div>
+			</div>
+			<div class="clear">
+				<dl class="stats">
+					<div><dt>Size</dt><dd id="sSize">&ndash;</dd></div>
+					<div><dt>Colors</dt><dd id="sCol">&ndash;</dd></div>
+					<div><dt>Paths</dt><dd id="sPath">&ndash;</dd></div>
+					<div><dt>Vertices</dt><dd id="sVert">&ndash;</dd></div>
+					<div><dt>Pixel match</dt><dd id="sMatch">&ndash;</dd></div>
+				</dl>
+			</div>
+			<p>
+				<input id="dl" type="button" value="Download .jsx">
+				<span id="msg"></span>
+			</p>
+		</div>
+<script>
+var $=function(i){return document.getElementById(i)};
+var img=new Image(),W=0,H=0,jsx="";
+
+function load(src){img.onload=process;img.src=src}
+img.crossOrigin="anonymous";
+$('file').onchange=function(e){readFile(e.target.files[0])};
+function readFile(f){if(!f)return;var r=new FileReader();r.onload=function(){load(r.result)};r.readAsDataURL(f)}
+
+// Trace all boundary loops of a boolean mask. Returns array of flat [x,y,...] loops (clockwise outer, counter-clockwise holes).
+function trace(mask){
+  var S=W+1,out={},cnt=0;
+  function at(x,y){return x>=0&&y>=0&&x<W&&y<H&&mask[y*W+x]}
+  function edge(a,b){(out[a]||(out[a]=[])).push(b);cnt++}
+  for(var y=0;y<H;y++)for(var x=0;x<W;x++){
+    if(!mask[y*W+x])continue;
+    var tl=y*S+x,tr=tl+1,bl=tl+S,br=bl+1;
+    if(!at(x,y-1))edge(tl,tr);
+    if(!at(x+1,y))edge(tr,br);
+    if(!at(x,y+1))edge(br,bl);
+    if(!at(x-1,y))edge(bl,tl);
+  }
+  var loops=[];
+  function dir(a,b){return[Math.sign(b%S-a%S),Math.sign(((b/S)|0)-((a/S)|0))]}
+  for(var k in out){
+    k=+k;
+    while(out[k]&&out[k].length){
+      var first=out[k].pop(),pts=[k],prev=k,cur=first;
+      for(;;){
+        var cands=(out[cur]||[]).slice();
+        if(cur===k)cands.push(first);
+        if(!cands.length)break;
+        var pick=cands[0];
+        if(cands.length>1){
+          // At a diagonal pinch, always turn right so each pixel keeps its own tight loop.
+          var d=dir(prev,cur),rt=[-d[1],d[0]];
+          for(var q=0;q<cands.length;q++){var e=dir(cur,cands[q]);if(e[0]===rt[0]&&e[1]===rt[1]){pick=cands[q];break}}
+        }
+        if(cur===k&&pick===first)break;
+        out[cur].splice(out[cur].indexOf(pick),1);
+        pts.push(cur);prev=cur;cur=pick;
+      }
+      loops.push(simplify(pts,S));
+    }
+  }
+  return loops;
+}
+function simplify(keys,S){
+  var p=keys.map(function(k){return[k%S,(k/S)|0]}),r=[],n=p.length;
+  for(var i=0;i<n;i++){
+    var a=p[(i+n-1)%n],b=p[i],c=p[(i+1)%n];
+    if((b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0])!==0)r.push(b[0],b[1]);
+  }
+  return r;
+}
+
+var INSET=0.02;
+function r3(v){return Math.round(v*1000)/1000}
+function sgn(v){return v>0?1:(v<0?-1:0)}
+// Shrink a loop inward by INSET on every side (interior is always to the right of travel).
+function insetLoop(l){
+  var n=l.length/2,o=[];
+  for(var i=0;i<n;i++){
+    var a=(i+n-1)%n,b=(i+1)%n;
+    var ix=sgn(l[2*i]-l[2*a]),iy=sgn(l[2*i+1]-l[2*a+1]),ox=sgn(l[2*b]-l[2*i]),oy=sgn(l[2*b+1]-l[2*i+1]);
+    o.push(r3(l[2*i]+INSET*(-iy-oy)),r3(l[2*i+1]+INSET*(ix+ox)));
+  }
+  return o;
+}
+// A filled loop that is exactly one pixel tall (a single horizontal run). Draft quality drops these if shrunk.
+function thinRect(l){
+  if(l.length!==8)return null;
+  var a=0,n=4,y0=1e9,y1=-1e9,x0=1e9,x1=-1e9;
+  for(var i=0;i<n;i++){var j=(i+1)%n;a+=l[2*i]*l[2*j+1]-l[2*j]*l[2*i+1];
+    x0=Math.min(x0,l[2*i]);x1=Math.max(x1,l[2*i]);y0=Math.min(y0,l[2*i+1]);y1=Math.max(y1,l[2*i+1]);}
+  return(a>0&&y1-y0===1)?{x0:x0,x1:x1,y:y0}:null;
+}
+
+function build(d){
+  var groups={},opaque=new Uint8Array(W*H);
+  for(var i=0;i<W*H;i++){
+    if(d[i*4+3]<128)continue;
+    opaque[i]=1;
+    var key=d[i*4]+','+d[i*4+1]+','+d[i*4+2];
+    var g=groups[key]||(groups[key]={rgb:[d[i*4],d[i*4+1],d[i*4+2]],mask:new Uint8Array(W*H),n:0});
+    g.mask[i]=1;g.n++;
+  }
+  var list=Object.keys(groups).map(function(k){return groups[k]}).sort(function(a,b){return b.n-a.n});
+  list.forEach(function(g){g.paths=trace(g.mask);g.name=hex(g.rgb)});
+  var main=[],thinG=[],thinAt={};
+  list.forEach(function(g){
+    var m=[],t=[];
+    g.paths.forEach(function(l){var r=thinRect(l);if(r)t.push(r);else m.push(insetLoop(l))});
+    main.push({name:g.name,rgb:g.rgb,paths:m});
+    if(t.length)thinG.push({name:g.name+" (1px rows)",key:g.name,rgb:g.rgb,rects:t});
+  });
+  // Draft skips any path whose bounding box holds no whole pixel line, so each 1px row gets a tiny tab
+  // that crosses one line. The tab lands on one neighbor pixel; pick one that is hidden (opaque, drawn above) or outside the comp.
+  var stray=0;
+  thinG.forEach(function(g){g.rects.forEach(function(r){
+    var best=null;
+    var dirs=[1,-1];
+    for(var di=0;di<2&&!best;di++){
+      var dir=dirs[di],row=r.y+dir;
+      for(var x=r.x0;x<r.x1;x++){
+        var free=(row<0||row>=H)||opaque[row*W+x];
+        if(free){best={dir:dir,col:x,row:row};break}
+      }
+    }
+    if(!best){best={dir:1,col:r.x0,row:r.y+1};stray++}
+    r.dir=best.dir;r.col=best.col;r.spill=best.row;
+    for(var x=r.x0;x<r.x1;x++)thinAt[r.y*W+x]=g.key;
+  })});
+  build.stray=stray;
+  // Order the 1px groups: if A spills onto a pixel of B, B must be drawn above A.
+  var edges={},indeg={},keys=thinG.map(function(g){return g.key});
+  keys.forEach(function(k){edges[k]={};indeg[k]=0});
+  thinG.forEach(function(g){g.rects.forEach(function(r){
+    if(r.spill<0||r.spill>=H)return;
+    var o=thinAt[r.spill*W+r.col];
+    if(o&&o!==g.key&&!edges[g.key][o]){edges[g.key][o]=1;indeg[o]++}
+  })});
+  var drawOrder=[],left=keys.slice();
+  while(left.length){
+    var pick=left.filter(function(k){return indeg[k]===0})[0]||left[0];
+    left.splice(left.indexOf(pick),1);drawOrder.push(pick);
+    Object.keys(edges[pick]).forEach(function(o){indeg[o]--});
+  }
+  var thinData=drawOrder.slice().reverse().map(function(k){
+    var g=thinG.filter(function(t){return t.key===k})[0];
+    return{name:g.name,rgb:g.rgb,paths:g.rects.map(function(r){
+      var I=INSET,xa=r.x0+I,xb=r.x1-I,ya=r.y+I,yb=r.y+1-I,c0=r.col+0.4,c1=r.col+0.6;
+      if(r.dir>0)return[xa,ya,xb,ya,xb,yb,c1,yb,c1,r.y+1+0.02,c0,r.y+1+0.02,c0,yb,xa,yb].map(r3);
+      return[xa,ya,c0,ya,c0,r.y-0.02,c1,r.y-0.02,c1,ya,xb,ya,xb,yb,xa,yb].map(r3);
+    })};
+  });
+  return{list:list,data:main.concat(thinData),opaque:opaque};
+}
+
+function process(){
+  $('results').hidden=false;
+  W=img.naturalWidth;H=img.naturalHeight;
+  var c=document.createElement('canvas');c.width=W;c.height=H;
+  var cx=c.getContext('2d');cx.drawImage(img,0,0);
+  var d=cx.getImageData(0,0,W,H).data;
+  var b=build(d),data=b.data,list=b.list;
+  var paths=0,verts=0;
+  data.forEach(function(g){paths+=g.paths.length;g.paths.forEach(function(p){verts+=p.length/2})});
+  jsx=makeJSX(data);
+  $('sSize').textContent=W+"×"+H;$('sCol').textContent=list.length;
+  $('sPath').textContent=paths;$('sVert').textContent=verts;
+  draw($('src'),null,d);
+  var o=draw($('out'),list,null);
+  var m=0;
+  for(var j=0;j<W*H;j++){
+    var a=o[j*4+3]>=128,bb=d[j*4+3]>=128;
+    if(a===bb&&(!a||(o[j*4]===d[j*4]&&o[j*4+1]===d[j*4+1]&&o[j*4+2]===d[j*4+2])))m++;
+  }
+  var pct=(m/(W*H)*100).toFixed(2);
+  $('sMatch').textContent=pct+"%";$('sMatch').className=m===W*H?'ok':'bad';
+}
+function hex(rgb){return"#"+rgb.map(function(v){return("0"+v.toString(16)).slice(-2)}).join("")}
+
+// Draws either raw pixel data or path groups to a canvas; returns pixel data at 1:1.
+function draw(cv,data,raw){
+  cv.width=W;cv.height=H;var x=cv.getContext('2d');
+  if(raw){var id=x.createImageData(W,H);id.data.set(raw);x.putImageData(id,0,0)}
+  else{
+    for(var i=data.length-1;i>=0;i--){
+      var g=data[i],p=new Path2D();
+      g.paths.forEach(function(l){p.moveTo(l[0],l[1]);for(var k=2;k<l.length;k+=2)p.lineTo(l[k],l[k+1]);p.closePath()});
+      x.fillStyle=hex(g.rgb);x.fill(p,'evenodd');
+    }
+  }
+  return x.getImageData(0,0,W,H).data;
+}
+
+function makeJSX(data){
+  var s=[];
+  s.push("// Generated by Sprite to After Effects paths");
+  s.push("// Run via File > Scripts > Run Script File...");
+  s.push("var W = "+W+", H = "+H+";");
+  s.push("// Each entry: one shape group. rgb is 0-255. Each path is a flat [x,y,x,y,...] polygon in comp pixels (already adjusted for Draft quality).");
+  s.push("var DATA = [");
+  data.forEach(function(g){
+    s.push("  {name:\""+g.name+"\", rgb:["+g.rgb.join(",")+"], paths:[");
+    s.push(g.paths.map(function(p){return"    ["+p.join(",")+"]"}).join(",\n"));
+    s.push("  ]},");
+  });
+  s.push("];");
+  s.push([
+"",
+"(function () {",
+"  app.beginUndoGroup(\"Build sprite from paths\");",
+"  try {",
+"  var comp = app.project.items.addComp(\"Sprite\", W, H, 1, 5, 30);",
+"  var layer = comp.layers.addShape();",
+"  layer.name = \"Sprite Paths\";",
+"  layer.property(\"ADBE Transform Group\").property(\"ADBE Anchor Point\").setValue([0, 0]);",
+"  layer.property(\"ADBE Transform Group\").property(\"ADBE Position\").setValue([0, 0]);",
+"  var root = layer.property(\"ADBE Root Vectors Group\");",
+"",
+"  function addFill(gc, d) {",
+"    var fill = gc.addProperty(\"ADBE Vector Graphic - Fill\");",
+"    fill.property(\"ADBE Vector Fill Color\").setValue([d.rgb[0] / 255, d.rgb[1] / 255, d.rgb[2] / 255, 1]);",
+"    fill.property(\"ADBE Vector Fill Rule\").setValue(2); // even-odd, so holes cut out",
+"  }",
+"  function addPath(gc, flat) {",
+"    var v = [], t = [];",
+"    for (var k = 0; k < flat.length; k += 2) { v.push([flat[k], flat[k + 1]]); t.push([0, 0]); }",
+"    var shape = new Shape();",
+"    shape.vertices = v; shape.inTangents = t; shape.outTangents = t; shape.closed = true;",
+"    var p = gc.addProperty(\"ADBE Vector Shape - Group\");",
+"    p.property(\"ADBE Vector Shape\").setValue(shape);",
+"  }",
+"",
+"  // Probe whether new items are inserted at the top or the bottom, so no moveTo() is needed.",
+"  var pa = root.addProperty(\"ADBE Vector Group\"); pa.name = \"__a\";",
+"  var pb = root.addProperty(\"ADBE Vector Group\"); pb.name = \"__b\";",
+"  var newOnTop = (root.property(1).name === \"__b\");",
+"  root.property(1).remove();",
+"  root.property(1).remove();",
+"",
+"  var order = [];",
+"  for (var i = 0; i < DATA.length; i++) order.push(i);",
+"  if (newOnTop) order.reverse();   // so DATA[0] ends up on top",
+"",
+"  for (var n = 0; n < order.length; n++) {",
+"    var d = DATA[order[n]];",
+"    var group = root.addProperty(\"ADBE Vector Group\");",
+"    group.name = d.name;",
+"    var gc = group.property(\"ADBE Vectors Group\");",
+"    if (newOnTop) addFill(gc, d);   // fill must end up below its paths",
+"    for (var j = 0; j < d.paths.length; j++) addPath(gc, d.paths[j]);",
+"    if (!newOnTop) addFill(gc, d);",
+"  }",
+"  comp.openInViewer();",
+"  } catch (e) { alert(\"Script error: \" + e.toString() + \" (line \" + e.line + \")\"); }",
+"  app.endUndoGroup();",
+"})();",""].join("\n"));
+  return s.join("\n");
+}
+
+$('dl').onclick=function(){
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([jsx],{type:"text/plain"}));
+  a.download="build_sprite.jsx";document.body.appendChild(a);a.click();a.remove();
+  $('msg').textContent="Downloaded build_sprite.jsx";
+};
+</script>
+	</body>
+</html>
